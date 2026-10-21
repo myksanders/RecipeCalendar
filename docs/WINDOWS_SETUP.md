@@ -77,7 +77,7 @@ can't reach it.
 
 1. Open Safari → `http://<pc-name>:3000` → Share → **Add to Home Screen**.
 2. In the app, **Settings** has copy-paste steps for:
-   - subscribing in Apple Calendar (`webcal://<pc-name>:3000/calendar.ics`), and
+   - subscribing in Apple Calendar (`http://<pc-name>:3000/calendar.ics`), and
    - the **Apple Notes Shortcut** that puts the shopping list in your shared note.
 
 ## Updating

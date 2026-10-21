@@ -70,6 +70,11 @@ Open Safari → `http://<your-mac>.local:3000` → Share → **Add to Home Scree
 app's **Settings** page has the Apple Calendar subscription and the Apple Notes
 Shortcut steps, with the right addresses filled in.
 
+To see meals in Calendar on a Mac: **Calendar → File → New Calendar Subscription…**
+and paste `http://<your-mac>.local:3000/calendar.ics`. Use the `http://` address:
+`webcal://` links may be opened over HTTPS, which this home server doesn't speak,
+and Calendar then says the server responded with an error.
+
 ## Updating
 
 ```bash

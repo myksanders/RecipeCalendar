@@ -126,6 +126,11 @@ describe('API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('text/calendar');
     expect(res.body).toContain('BEGIN:VCALENDAR');
+    // Calendar apps are strict: CRLF line endings only, and HEAD must work too.
+    expect(res.body.endsWith('\r\n')).toBe(true);
+    expect(res.body.replace(/\r\n/g, '')).not.toContain('\n');
+    const head = await app.inject({ method: 'HEAD', url: '/calendar.ics' });
+    expect(head.statusCode).toBe(200);
   });
 
   it('imports a recipe from a URL', async () => {

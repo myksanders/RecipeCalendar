@@ -23,7 +23,7 @@ ticked, grouped by Albert Heijn-style category so it's quick to enter in the AH 
   **Send to Notes** via an iOS Shortcut into your shared Apple Note.
 - **Variety nudges** — the book shows when you last had each recipe and sorts by
   "longest since we had it"; planning a repeat within N weeks (default 3) warns you.
-- **Apple Calendar feed** — subscribe to `webcal://<pc>:3000/calendar.ics`.
+- **Apple Calendar feed** — subscribe to `http://<computer>:3000/calendar.ics` (Calendar → File → New Calendar Subscription).
 - Works on iPhone as a home-screen app (PWA), iPad, and desktop; light and dark mode.
 - Two phones planning at once stay in sync (refreshes on focus and every 30 s).
 

@@ -177,14 +177,20 @@ export function SettingsPage() {
             Subscribe to this feed and planned meals appear in the Calendar app (read-only, refreshes about hourly).
             Works while your phone is on the home Wi-Fi.
           </p>
-          <CopyField value={`webcal://${host}/calendar.ics`} />
+          {/* Paste the http:// address: Calendar may open webcal:// links over HTTPS, which this home server doesn't speak. */}
+          <CopyField value={`${origin}/calendar.ics`} />
           <ol className="howto small">
             <li>
-              On iPhone: <b>Settings → Apps → Calendar → Calendar Accounts → Add Account → Other → Add Subscribed Calendar</b>.
+              On a Mac: open <b>Calendar → File → New Calendar Subscription…</b>, paste the address above, click
+              Subscribe, then set Auto-refresh to <b>Every hour</b>.
             </li>
-            <li>Paste the address above and tap Next, then Save.</li>
             <li>
-              Or simply <a href={`webcal://${host}/calendar.ics`}>tap here on the iPhone</a> to subscribe.
+              On iPhone: <b>Settings → Apps → Calendar → Calendar Accounts → Add Account → Other → Add Subscribed
+              Calendar</b>, paste the address, tap Next, then Save.
+            </li>
+            <li>
+              Or try <a href={`webcal://${host}/calendar.ics`}>one-tap subscribe</a>. If Calendar says the server responded
+              with an error, use the address above instead.
             </li>
           </ol>
         </section>
