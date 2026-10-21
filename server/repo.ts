@@ -17,7 +17,7 @@ import type {
 
 type Row = Record<string, any>;
 
-const DEFAULT_SETTINGS: Settings = { varietyWeeks: 3, weekStart: 1, people: ['Everyone', 'Kid'] };
+const DEFAULT_SETTINGS: Settings = { varietyWeeks: 3, weekStart: 1, mealSlots: ['dinner'], people: ['Everyone', 'Kid'] };
 
 export function createRepo(db: DB) {
   // ---------- recipes ----------

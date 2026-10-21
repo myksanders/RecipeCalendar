@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addDays, parseISODate, startOfWeek, today as todayFn, toISODate } from '../../../shared/dates';
-import type { EntryInput, MealEntry, RecipeSummary, Settings, Slot } from '../../../shared/types';
+import { visibleSlots, type EntryInput, type MealEntry, type RecipeSummary, type Settings, type Slot } from '../../../shared/types';
 import { api, cachedSettings } from '../api';
 import { AddMealDialog } from '../components/AddMealDialog';
 import { MealCard, MealCardView } from '../components/MealCard';
@@ -39,6 +39,7 @@ function DayCell({
   month,
   placing,
   compact,
+  showSlots,
   onAdd,
   onOpen,
 }: {
@@ -48,6 +49,7 @@ function DayCell({
   month?: number;
   placing: boolean;
   compact?: boolean;
+  showSlots: boolean;
   onAdd: (date: string) => void;
   onOpen: (e: MealEntry) => void;
 }) {
@@ -70,7 +72,7 @@ function DayCell({
       </div>
       <div className="day-body">
         {entries.map((e) => (
-          <MealCard key={e.id} e={e} compact={compact} onOpen={onOpen} />
+          <MealCard key={e.id} e={e} compact={compact} showSlot={showSlots || e.slot !== 'dinner'} onOpen={onOpen} />
         ))}
         <button
           className={`add-btn ${placing ? 'placing' : ''}`}
@@ -111,6 +113,8 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
   }, [view]);
 
   const weekStart = settings.weekStart;
+  // Only label cards "Dinner" etc. when the household plans more than one meal a day.
+  const showSlots = visibleSlots(settings.mealSlots).length > 1;
   const { from, to, days } = useMemo(() => {
     if (view !== 'month') {
       const from = startOfWeek(anchor, weekStart);
@@ -290,6 +294,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
               byDay={byDay}
               today={today}
               selected={anchor}
+              slots={settings.mealSlots}
               placing={!!placing}
               onTileTap={onTileTap}
               onAdd={onDayAdd}
@@ -305,6 +310,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
                   entries={byDay.get(d) ?? []}
                   today={today}
                   placing={!!placing}
+                  showSlots={showSlots}
                   onAdd={onDayAdd}
                   onOpen={(e) => setOpenId(e.id)}
                 />
@@ -325,6 +331,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
                   today={today}
                   month={parseISODate(anchor).getMonth()}
                   placing={!!placing}
+                  showSlots={showSlots}
                   compact
                   onAdd={onDayAdd}
                   onOpen={(e) => setOpenId(e.id)}
@@ -381,6 +388,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
         <AddMealDialog
           date={addFor.date}
           initialSlot={addFor.slot}
+          slots={settings.mealSlots}
           today={today}
           recipes={recipes}
           people={settings.people}
@@ -388,7 +396,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
           onAdd={addEntry}
         />
       )}
-      {openId && <MealDetail entryId={openId} people={settings.people} onClose={closeDetail} onChanged={refresh} />}
+      {openId && <MealDetail entryId={openId} people={settings.people} slots={settings.mealSlots} onClose={closeDetail} onChanged={refresh} />}
     </DndContext>
   );
 }

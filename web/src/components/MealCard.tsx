@@ -38,11 +38,13 @@ export function MealCard({
   e,
   compact,
   big,
+  showSlot = true,
   onOpen,
 }: {
   e: MealEntry;
   compact?: boolean;
   big?: boolean;
+  showSlot?: boolean;
   onOpen: (e: MealEntry) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `entry-${e.id}`, data: { entry: e } });
@@ -60,7 +62,7 @@ export function MealCard({
       }}
       onKeyDown={(k) => k.key === 'Enter' && onOpen(e)}
     >
-      <MealCardView e={e} compact={compact} showSlot={!big} />
+      <MealCardView e={e} compact={compact} showSlot={showSlot && !big} />
     </div>
   );
 }

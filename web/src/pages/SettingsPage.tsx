@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { Settings } from '../../../shared/types';
+import type { Settings, Slot } from '../../../shared/types';
 import { api } from '../api';
 import { useTheme, type ThemePref } from '../theme';
-import { useToast } from '../ui';
+import { SLOT_LABEL, useToast } from '../ui';
 
 function CopyField({ value }: { value: string }) {
   const toast = useToast();
@@ -80,6 +80,33 @@ export function SettingsPage() {
           </label>
           <p className="muted small" style={{ margin: 0 }}>
             Used for the “For” field on meals, e.g. leftovers for the kid. Include “Kid” and leftovers default to them.
+          </p>
+        </section>
+
+        <section className="card">
+          <h2>Meals you plan</h2>
+          <div className="meal-toggles">
+            {(['breakfast', 'lunch', 'dinner'] as Slot[]).map((slot) => {
+              const always = slot === 'dinner';
+              const on = always || s.mealSlots.includes(slot);
+              return (
+                <label key={slot} className={`meal-toggle ${on ? 'on' : ''} ${always ? 'always' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    disabled={always}
+                    onChange={(e) =>
+                      save({ mealSlots: e.target.checked ? [...s.mealSlots, slot] : s.mealSlots.filter((x) => x !== slot) })
+                    }
+                  />
+                  <span>{SLOT_LABEL[slot]}</span>
+                  {always && <span className="muted small">always</span>}
+                </label>
+              );
+            })}
+          </div>
+          <p className="muted small" style={{ margin: 0 }}>
+            Turn on breakfast or lunch to plan them too. Meals already on the calendar always stay visible.
           </p>
         </section>
 

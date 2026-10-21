@@ -2,18 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { addDays } from '../../../shared/dates';
 import { formatIngredient } from '../../../shared/ingredients';
 import type { EntryDetail, Slot } from '../../../shared/types';
-import { SLOTS } from '../../../shared/types';
+import { leftoverSlot, visibleSlots } from '../../../shared/types';
 import { api } from '../api';
 import { fmtDay, KIND_INFO, Modal, navigate, Photo, SLOT_LABEL, useToast } from '../ui';
 
 export function MealDetail({
   entryId,
   people,
+  slots,
   onClose,
   onChanged,
 }: {
   entryId: number;
   people: string[];
+  slots: Slot[];
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -81,15 +83,16 @@ export function MealDetail({
   async function leftoversTomorrow() {
     if (!d) return;
     const date = addDays(d.date, 1);
+    const slot = leftoverSlot(slots);
     await api.createEntry({
       date,
-      slot: 'lunch',
+      slot,
       kind: 'leftovers',
       leftoverOfEntryId: d.id,
       who: people.includes('Kid') ? 'Kid' : '',
     });
     onChanged();
-    toast({ text: `Leftovers added to ${fmtDay(date)} lunch` });
+    toast({ text: `Leftovers added to ${fmtDay(date)} ${SLOT_LABEL[slot].toLowerCase()}` });
   }
 
   if (error)
@@ -110,6 +113,7 @@ export function MealDetail({
   const isRecipe = d.kind === 'recipe';
   const servings = d.servings ?? recipe?.servings ?? null;
   const haveCount = recipe ? recipe.ingredients.filter((i) => d.checks[i.id!]).length : 0;
+  const slotOptions = visibleSlots(slots, [d.slot]);
 
   return (
     <Modal onClose={onClose} label={d.displayTitle}>
@@ -139,16 +143,18 @@ export function MealDetail({
             Day
             <input type="date" value={d.date} onChange={(e) => e.target.value && patch({ date: e.target.value })} />
           </label>
-          <label className="field">
-            Meal
-            <select value={d.slot} onChange={(e) => patch({ slot: e.target.value as Slot })}>
-              {SLOTS.map((s) => (
-                <option key={s} value={s}>
-                  {SLOT_LABEL[s]}
-                </option>
-              ))}
-            </select>
-          </label>
+          {slotOptions.length > 1 && (
+            <label className="field">
+              Meal
+              <select value={d.slot} onChange={(e) => patch({ slot: e.target.value as Slot })}>
+                {slotOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {SLOT_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="field">
             For
             <select value={d.who} onChange={(e) => patch({ who: e.target.value })}>

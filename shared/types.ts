@@ -17,6 +17,20 @@ export type Category = (typeof CATEGORIES)[number];
 export const SLOTS = ['breakfast', 'lunch', 'dinner', 'other'] as const;
 export type Slot = (typeof SLOTS)[number];
 
+/**
+ * Meals to offer and show: dinner always, plus the ones the household turned on
+ * in Settings, plus any slot already in use (so planned meals never vanish).
+ */
+export function visibleSlots(enabled: readonly Slot[], inUse: readonly Slot[] = []): Slot[] {
+  const on = new Set<Slot>(['dinner', ...enabled, ...inUse]);
+  return SLOTS.filter((s) => on.has(s));
+}
+
+/** Where leftovers go by default: lunch if the household plans lunches, else dinner. */
+export function leftoverSlot(enabled: readonly Slot[]): Slot {
+  return enabled.includes('lunch') ? 'lunch' : 'dinner';
+}
+
 export const ENTRY_KINDS = ['recipe', 'leftovers', 'dining_out', 'fend', 'note'] as const;
 export type EntryKind = (typeof ENTRY_KINDS)[number];
 
@@ -136,5 +150,6 @@ export interface ExtraItem {
 export interface Settings {
   varietyWeeks: number;
   weekStart: 0 | 1; // 0 = Sunday, 1 = Monday
+  mealSlots: Slot[]; // meals the household plans; dinner is always included
   people: string[];
 }

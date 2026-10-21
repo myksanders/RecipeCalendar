@@ -1,11 +1,10 @@
 import { useDroppable } from '@dnd-kit/core';
 import { useRef } from 'react';
 import { parseISODate } from '../../../shared/dates';
-import type { MealEntry, Slot } from '../../../shared/types';
+import { visibleSlots, type MealEntry, type Slot } from '../../../shared/types';
 import { dowShort, fmtDay, KIND_INFO, Photo, SLOT_LABEL } from '../ui';
 import { MealCard } from './MealCard';
 
-const PANE_SLOTS: Slot[] = ['breakfast', 'lunch', 'dinner'];
 
 function DayTile({
   date,
@@ -65,6 +64,7 @@ export function SplitView({
   byDay,
   today,
   selected,
+  slots: enabledSlots,
   placing,
   onTileTap,
   onAdd,
@@ -75,6 +75,7 @@ export function SplitView({
   byDay: Map<string, MealEntry[]>;
   today: string;
   selected: string;
+  slots: Slot[];
   placing: boolean;
   onTileTap: (date: string) => void;
   onAdd: (date: string, slot: Slot) => void;
@@ -82,7 +83,7 @@ export function SplitView({
   onSwipe: (dir: -1 | 1) => void;
 }) {
   const entries = byDay.get(selected) ?? [];
-  const slots = entries.some((e) => e.slot === 'other') ? [...PANE_SLOTS, 'other' as Slot] : PANE_SLOTS;
+  const slots = visibleSlots(enabledSlots, entries.map((e) => e.slot));
   const touch = useRef<{ x: number; y: number } | null>(null);
 
   return (

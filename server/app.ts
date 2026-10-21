@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { addDays, isValidISODate, today } from '../shared/dates';
 import { formatIngredient } from '../shared/ingredients';
 import { shoppingListToText } from '../shared/shopping';
-import { CATEGORIES, ENTRY_KINDS, SLOTS } from '../shared/types';
+import { CATEGORIES, ENTRY_KINDS, SLOTS, visibleSlots } from '../shared/types';
 import { guessCategory } from '../shared/categorize';
 import type { Repo } from './repo';
 import { buildIcs } from './services/ical';
@@ -328,6 +328,12 @@ export function buildApp(opts: AppOptions): FastifyInstance {
       z.object({
         varietyWeeks: z.number().int().min(0).max(26).optional(),
         weekStart: z.union([z.literal(0), z.literal(1)]).optional(),
+        // Dinner is always planned; stored in day order.
+        mealSlots: z
+          .array(z.enum(['breakfast', 'lunch', 'dinner']))
+          .max(3)
+          .transform((s) => visibleSlots(s))
+          .optional(),
         people: z.array(z.string().trim().min(1)).max(12).optional(),
       }),
       req.body,

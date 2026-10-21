@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { addDays } from '../../../shared/dates';
 import type { EntryInput, EntryKind, MealEntry, RecipeSummary, Slot } from '../../../shared/types';
-import { SLOTS } from '../../../shared/types';
+import { leftoverSlot, visibleSlots } from '../../../shared/types';
 import { api } from '../api';
 import { fmtDay, KIND_INFO, Modal, Photo, SLOT_LABEL } from '../ui';
 import { RecipeMeta, sortRecipes } from './RecipeBook';
@@ -11,6 +11,7 @@ const KINDS: EntryKind[] = ['recipe', 'leftovers', 'dining_out', 'fend', 'note']
 export function AddMealDialog({
   date,
   initialSlot,
+  slots,
   today,
   recipes,
   people,
@@ -19,6 +20,7 @@ export function AddMealDialog({
 }: {
   date: string;
   initialSlot?: Slot;
+  slots: Slot[];
   today: string;
   recipes: RecipeSummary[];
   people: string[];
@@ -44,10 +46,11 @@ export function AddMealDialog({
   useEffect(() => {
     if (kind === 'leftovers' && people.includes('Kid')) setWho('Kid');
     // Opened from a specific slot (split view): keep it; otherwise pick a sensible default.
-    if (!initialSlot) setSlot(kind === 'leftovers' ? 'lunch' : 'dinner');
-  }, [kind, people, initialSlot]);
+    if (!initialSlot) setSlot(kind === 'leftovers' ? leftoverSlot(slots) : 'dinner');
+  }, [kind, people, initialSlot, slots]);
 
   const list = useMemo(() => sortRecipes(recipes, 'stale', query), [recipes, query]);
+  const slotOptions = visibleSlots(slots, initialSlot ? [initialSlot] : []);
 
   async function add(input: Omit<EntryInput, 'date' | 'slot' | 'who'>, recipe?: RecipeSummary) {
     setBusy(true);
@@ -76,17 +79,20 @@ export function AddMealDialog({
             </button>
           ))}
         </div>
-        <div className="three" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <label className="field">
-            Meal
-            <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
-              {SLOTS.map((s) => (
-                <option key={s} value={s}>
-                  {SLOT_LABEL[s]}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="three" style={{ gridTemplateColumns: slotOptions.length > 1 ? '1fr 1fr' : '1fr' }}>
+          {/* Only dinner planned: no need to ask which meal. */}
+          {slotOptions.length > 1 && (
+            <label className="field">
+              Meal
+              <select value={slot} onChange={(e) => setSlot(e.target.value as Slot)}>
+                {slotOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {SLOT_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="field">
             For
             <select value={who} onChange={(e) => setWho(e.target.value)}>

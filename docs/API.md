@@ -45,7 +45,7 @@ Dates are local `YYYY-MM-DD` strings.
 
 | Method | Path | Notes |
 |---|---|---|
-| GET/PUT | `/api/settings` | `{ varietyWeeks, weekStart (0 = Sunday, 1 = Monday), people[] }` |
+| GET/PUT | `/api/settings` | `{ varietyWeeks, weekStart (0 = Sunday, 1 = Monday), mealSlots (dinner always included), people[] }` |
 | GET | `/api/categorize?name=` | `{ category }` |
 | GET | `/calendar.ics` | iCal feed, 4 weeks back to ~4 months ahead |
 | GET | `/photos/:file` | recipe photos |

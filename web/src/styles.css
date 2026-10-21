@@ -473,3 +473,13 @@ ol.howto { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 @media (min-width: 721px) {
   .toasts { left: auto; right: 20px; bottom: 20px; transform: none; width: 380px; }
 }
+
+/* settings: meals you plan */
+.meal-toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.meal-toggle {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-weight: 600;
+}
+.meal-toggle input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.meal-toggle.on { border-color: var(--accent); background: var(--accent-soft); }
+.meal-toggle.always { cursor: default; }

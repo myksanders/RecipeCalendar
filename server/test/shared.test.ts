@@ -3,6 +3,7 @@ import { guessCategory } from '../../shared/categorize';
 import { parseIngredientLine, parseQuantity, formatIngredient } from '../../shared/ingredients';
 import { buildShoppingList, shoppingListToText } from '../../shared/shopping';
 import { addDays, startOfWeek } from '../../shared/dates';
+import { leftoverSlot, visibleSlots } from '../../shared/types';
 
 describe('guessCategory', () => {
   it.each([
@@ -105,5 +106,17 @@ describe('dates', () => {
     expect(startOfWeek('2026-10-21', 0)).toBe('2026-10-18');
     expect(startOfWeek('2026-10-24', 0)).toBe('2026-10-18');
     expect(startOfWeek('2026-10-25', 0)).toBe('2026-10-25');
+  });
+});
+
+describe('meal slots', () => {
+  it('always includes dinner, keeps day order, and shows slots in use', () => {
+    expect(visibleSlots([])).toEqual(['dinner']);
+    expect(visibleSlots(['dinner', 'breakfast'])).toEqual(['breakfast', 'dinner']);
+    expect(visibleSlots(['dinner'], ['lunch', 'other'])).toEqual(['lunch', 'dinner', 'other']);
+  });
+  it('puts leftovers at lunch only when lunch is planned', () => {
+    expect(leftoverSlot(['dinner'])).toBe('dinner');
+    expect(leftoverSlot(['lunch', 'dinner'])).toBe('lunch');
   });
 });

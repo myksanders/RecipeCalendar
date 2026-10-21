@@ -114,6 +114,13 @@ describe('API', () => {
     expect((await app.inject({ method: 'PUT', url: '/api/settings', payload: { weekStart: 3 } })).statusCode).toBe(400);
   });
 
+  it('stores which meals the household plans', async () => {
+    expect((await app.inject({ method: 'GET', url: '/api/settings' })).json().mealSlots).toEqual(['dinner']);
+    const res = await app.inject({ method: 'PUT', url: '/api/settings', payload: { mealSlots: ['breakfast'] } });
+    expect(res.json().mealSlots).toEqual(['breakfast', 'dinner']);
+    expect((await app.inject({ method: 'PUT', url: '/api/settings', payload: { mealSlots: ['brunch'] } })).statusCode).toBe(400);
+  });
+
   it('serves an iCal feed', async () => {
     const res = await app.inject({ method: 'GET', url: '/calendar.ics' });
     expect(res.statusCode).toBe(200);

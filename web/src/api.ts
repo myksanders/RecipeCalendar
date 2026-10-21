@@ -74,7 +74,7 @@ export const api = {
 };
 
 const SETTINGS_KEY = 'settings.cache';
-const DEFAULT_SETTINGS: Settings = { varietyWeeks: 3, weekStart: 1, people: ['Everyone', 'Kid'] };
+const DEFAULT_SETTINGS: Settings = { varietyWeeks: 3, weekStart: 1, mealSlots: ['dinner'], people: ['Everyone', 'Kid'] };
 
 function cacheSettings(s: Settings): Settings {
   try {
