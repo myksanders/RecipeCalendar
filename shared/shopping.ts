@@ -146,13 +146,26 @@ export function buildShoppingList(
     category,
     items: [...items.values()]
       .filter((i) => i.category === category)
-      .sort((a, b) => (a.dutch ?? a.name).localeCompare(b.dutch ?? b.name)),
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })),
   })).filter((g) => g.items.length > 0);
 
   return { from, to, groups, haveCount };
 }
 
 /** Plain-text version for copy/share and the Apple Notes shortcut. */
+const capitalize = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
+
+/** The Dutch name if it adds anything (not just the same word), else null. */
+export function extraDutch(item: Pick<ShoppingItem, 'name' | 'dutch'>): string | null {
+  return item.dutch && normalizeName(item.dutch) !== normalizeName(item.name) ? capitalize(item.dutch) : null;
+}
+
+/** "Ground beef [Rundergehakt]": the recipe's wording first, the AH name in brackets. */
+export function shoppingLabel(item: Pick<ShoppingItem, 'name' | 'dutch'>): string {
+  const nl = extraDutch(item);
+  return nl ? `${capitalize(item.name)} [${nl}]` : capitalize(item.name);
+}
+
 export function shoppingListToText(list: ShoppingList, opts: { withSources?: boolean } = {}): string {
   const lines: string[] = [];
   lines.push(`Shopping list ${list.from} → ${list.to}`);
@@ -164,9 +177,7 @@ export function shoppingListToText(list: ShoppingList, opts: { withSources?: boo
     lines.push('', g.category.toUpperCase());
     for (const it of g.items) {
       const qty = formatQuantity(it.quantity, it.unit);
-      // Dutch first (what you type in the AH app), English in brackets when different.
-      const nl = it.dutch && normalizeName(it.dutch) !== normalizeName(it.name) ? it.dutch : null;
-      let line = `- ${qty ? qty + ' ' : ''}${nl ?? it.name}${nl ? ` (${it.name})` : ''}`;
+      let line = `- ${qty ? qty + ' ' : ''}${shoppingLabel(it)}`;
       if (opts.withSources && it.usedIn.length) line += `  (${it.usedIn.join(', ')})`;
       lines.push(line);
     }

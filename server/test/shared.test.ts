@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { guessCategory } from '../../shared/categorize';
 import { parseIngredientLine, parseQuantity, formatIngredient } from '../../shared/ingredients';
-import { buildShoppingList, shoppingListToText } from '../../shared/shopping';
+import { buildShoppingList, shoppingLabel, shoppingListToText } from '../../shared/shopping';
 import { addDays, startOfWeek } from '../../shared/dates';
 import { leftoverSlot, visibleSlots } from '../../shared/types';
 import { differsFromName, dutchKey, guessCategoryWithDutch, resolveDutch } from '../../shared/dutch';
@@ -86,7 +86,7 @@ describe('buildShoppingList', () => {
 
     const text = shoppingListToText(list);
     expect(text).toContain('MEAT & FISH\n- 1.5 kg Gehakt');
-    expect(text).toContain('HOUSEHOLD\n- toiletpapier');
+    expect(text).toContain('HOUSEHOLD\n- Toiletpapier');
     expect(text).not.toContain('old');
   });
 
@@ -185,7 +185,13 @@ describe('Dutch names', () => {
     const items = list.groups.flatMap((g) => g.items);
     expect(items).toHaveLength(1);
     expect(items[0]).toMatchObject({ dutch: 'bosui', quantity: 3, name: 'green onions' });
-    expect(shoppingListToText(list)).toContain('- 3 bosui (green onions)');
+    expect(shoppingListToText(list)).toContain('- 3 Green onions [Bosui]');
+  });
+
+  it('labels items as "Name [Dutch]" only when the Dutch name adds something', () => {
+    expect(shoppingLabel({ name: 'ground beef', dutch: 'rundergehakt' })).toBe('Ground beef [Rundergehakt]');
+    expect(shoppingLabel({ name: 'broccoli', dutch: 'broccoli' })).toBe('Broccoli');
+    expect(shoppingLabel({ name: 'perilla leaves', dutch: null })).toBe('Perilla leaves');
   });
 });
 

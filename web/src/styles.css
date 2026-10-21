@@ -446,8 +446,8 @@ input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: 2px sol
   display: flex; justify-content: space-between;
 }
 .shop-item { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 9px 14px; border-top: 1px solid var(--border); }
-.shop-item .nl-name { font-weight: 600; }
-.shop-item .en-name { font-style: italic; }
+.shop-item .item-name { font-weight: 600; }
+.shop-item .nl-bracket { color: var(--muted); }
 .shop-item-actions { display: flex; align-items: center; gap: 4px; }
 .dutch-add {
   margin-left: 8px; border: 1px dashed var(--border); background: transparent; color: var(--accent);

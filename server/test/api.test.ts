@@ -58,7 +58,7 @@ describe('API', () => {
 
     res = await app.inject({ method: 'GET', url: '/api/shopping-list.txt?from=2026-10-26&to=2026-11-01' });
     expect(res.headers['content-type']).toContain('text/plain');
-    expect(res.body).toContain('- 1 kg gehakt');
+    expect(res.body).toContain('- 1 kg Gehakt');
 
     res = await app.inject({ method: 'GET', url: '/api/entries?from=2026-10-26&to=2026-11-01' });
     expect(res.json().map((e: any) => e.displayTitle)).toEqual(['Lasagne', 'Leftovers: Lasagne', 'Dinner out']);

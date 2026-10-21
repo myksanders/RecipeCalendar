@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { addDays, startOfWeek, today as todayFn } from '../../../shared/dates';
-import { differsFromName, guessCategoryWithDutch } from '../../../shared/dutch';
+import { guessCategoryWithDutch } from '../../../shared/dutch';
 import { formatQuantity } from '../../../shared/ingredients';
-import { shoppingListToText } from '../../../shared/shopping';
+import { extraDutch, shoppingListToText } from '../../../shared/shopping';
 import { CATEGORIES, type Category, type ShoppingItem, type ShoppingList } from '../../../shared/types';
 import { api, cachedSettings } from '../api';
 import { AhSearchLink, DutchNameForm } from '../components/DutchName';
 import { fmtRange, useToast } from '../ui';
+
+const capitalize = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1);
 
 const SHORTCUT_KEY = 'shopping.shortcutName';
 
@@ -195,7 +197,8 @@ export function ShoppingPage() {
                   ) : (
                     <div>
                       {(it.quantity !== null || it.unit) && <span className="q">{formatQuantity(it.quantity, it.unit)} </span>}
-                      <span className="nl-name">{it.dutch ?? it.name}</span>
+                      <span className="item-name">{capitalize(it.name)}</span>
+                      {extraDutch(it) && <span className="nl-bracket"> [{extraDutch(it)}]</span>}
                       {!it.dutch && (
                         <button
                           className="dutch-add"
@@ -209,13 +212,7 @@ export function ShoppingPage() {
                       )}
                     </div>
                   )}
-                  {(differsFromName(it.name, it.dutch) || it.usedIn.length > 0) && (
-                    <div className="src">
-                      {differsFromName(it.name, it.dutch) && <span className="en-name">{it.name}</span>}
-                      {differsFromName(it.name, it.dutch) && it.usedIn.length > 0 && ' · '}
-                      {it.usedIn.join(' · ')}
-                    </div>
-                  )}
+                  {it.usedIn.length > 0 && <div className="src">{it.usedIn.join(' · ')}</div>}
                 </div>
                 <div className="shop-item-actions">
                   {it.dutch && editingDutch !== it.key && (
