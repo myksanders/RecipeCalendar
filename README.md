@@ -33,6 +33,8 @@ Needs **Node.js 22.13+** (Node 24 LTS recommended). No database server or native
 modules — it uses Node's built-in SQLite.
 
 ```bash
+git clone https://github.com/myksanders/RecipeCalendar.git
+cd RecipeCalendar
 npm install
 npm run build
 npm start          # http://localhost:3000, and on your Wi-Fi at http://<pc-ip>:3000

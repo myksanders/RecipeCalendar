@@ -17,12 +17,9 @@ node -v
 macOS blocks background services from those folders. Use your home folder:
 
 ```bash
-git clone https://github.com/myksanders/ClaudExperiment.git ~/MealPlan
-cd ~/MealPlan/meal-planner
+git clone https://github.com/myksanders/RecipeCalendar.git ~/MealPlan
+cd ~/MealPlan
 ```
-
-(Until the app is merged into the main branch, add `-b claude/focused-thompson-mqdhyl`
-to the `git clone` command.)
 
 ## 3. Try it
 
@@ -34,13 +31,13 @@ close the Terminal window to stop it.
 ## 4. Run it in the background, always
 
 ```bash
-~/MealPlan/meal-planner/scripts/macos/install-launchd.sh
+~/MealPlan/scripts/macos/install-launchd.sh
 ```
 
 This starts the planner now, at every login, and restarts it if it ever crashes.
 It prints the address for the phones, e.g. `http://Your-MacBook-Pro.local:3000`.
 iPhones find `.local` names by themselves on the same Wi-Fi, so no router setup is
-needed. Logs go to `meal-planner/data/server.log`.
+needed. Logs go to `~/MealPlan/data/server.log`.
 
 To stop and remove it: `scripts/macos/uninstall-launchd.sh` (your data stays).
 
@@ -77,12 +74,12 @@ Shortcut steps, with the right addresses filled in.
 
 ```bash
 cd ~/MealPlan && git pull
-meal-planner/scripts/macos/install-launchd.sh    # reinstalls, rebuilds and restarts
+scripts/macos/install-launchd.sh    # reinstalls, rebuilds and restarts
 ```
 
 ## Backups
 
-Everything is in `meal-planner/data/` (the SQLite file and photos). Time Machine
+Everything is in `~/MealPlan/data/` (the SQLite file and photos). Time Machine
 covers it if you use it; otherwise copy that folder somewhere now and then.
 
 ## Troubleshooting

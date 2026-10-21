@@ -16,10 +16,10 @@ node -v
 
 ## 2. Get the app
 
-Clone or download this repository, e.g. to `C:\MealPlan`, then in PowerShell:
+Clone or [download](https://github.com/myksanders/RecipeCalendar/archive/refs/heads/main.zip) this repository, e.g. to `C:\MealPlan`, then in PowerShell:
 
 ```powershell
-cd C:\MealPlan\meal-planner
+cd C:\MealPlan
 npm install
 npm run build
 npm start
@@ -62,8 +62,8 @@ Easiest: Task Scheduler.
 1. Open **Task Scheduler** → *Create Task…*
 2. General: name "Meal Planner", select *Run only when user is logged on*.
 3. Triggers: *New… → At log on*.
-4. Actions: *New… → Start a program* → Program: `C:\MealPlan\meal-planner\start-meal-planner.cmd`,
-   Start in: `C:\MealPlan\meal-planner`.
+4. Actions: *New… → Start a program* → Program: `C:\MealPlan\start-meal-planner.cmd`,
+   Start in: `C:\MealPlan`.
 5. Settings: untick *Stop the task if it runs longer than…*.
 
 Prefer it to run even when nobody is logged in? Use [NSSM](https://nssm.cc):
@@ -85,7 +85,6 @@ can't reach it.
 ```powershell
 cd C:\MealPlan
 git pull
-cd meal-planner
 npm install
 npm run build
 ```
@@ -94,7 +93,7 @@ Then restart it. Your data is untouched.
 
 ## Backups
 
-Everything lives in `meal-planner\data\` (the SQLite file and the photos).
+Everything lives in `C:\MealPlan\data\` (the SQLite file and the photos).
 Copy that folder somewhere safe — e.g. into OneDrive — every so often. Stop the
 app first, or copy all three `meal-planner.sqlite*` files together.
 
