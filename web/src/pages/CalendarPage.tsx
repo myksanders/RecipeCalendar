@@ -1,7 +1,7 @@
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useDroppable,
   useSensor,
@@ -214,8 +214,11 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
   }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 6 } }),
+    // Mouse + Touch rather than PointerSensor: on iOS the pointer sensor grabs the
+    // touch first and Safari turns the move into a scroll. Touch drags start after
+    // a short press-and-hold, so quick swipes still scroll the calendar.
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
   );
 
   function onDragStart(ev: DragStartEvent) {

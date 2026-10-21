@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react';
 import type { RecipeSummary } from '../../../shared/types';
 import { agoLabel, Photo } from '../ui';
 
+const TOUCH = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+
 type Sort = 'az' | 'stale' | 'popular';
 
 export function sortRecipes(recipes: RecipeSummary[], sort: Sort, query: string) {
@@ -50,7 +52,7 @@ function BookItem({
       className={`book-item ${selected ? 'selected' : ''}`}
       style={{ opacity: isDragging ? 0.4 : 1 }}
       onClick={() => onSelect(r)}
-      title="Drag onto a day, or tap and then tap a day"
+      title={TOUCH ? "Press and hold, then drag onto a day" : "Drag onto a day, or tap and then tap a day"}
     >
       <Photo src={r.photo} seed={r.title} />
       <div>
@@ -92,7 +94,7 @@ export function RecipeBook({
         <option value="popular">Most planned</option>
       </select>
       <p className="muted small" style={{ margin: 0 }}>
-        Drag a recipe onto a day — or tap it, then tap a day.
+        {TOUCH ? 'Press and hold a recipe, then drag it onto a day — or tap it, then tap a day.' : 'Drag a recipe onto a day — or tap it, then tap a day.'}
       </p>
       <div className="book-list">
         {list.map((r) => (

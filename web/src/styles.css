@@ -303,7 +303,7 @@ input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: 2px sol
 .book-item .photo { width: 56px; height: 56px; border-radius: 9px; }
 .book-item .photo .ph { font-size: 1.3rem; }
 .book-item .t { font-weight: 700; font-size: 0.9rem; line-height: 1.2; }
-.drag-overlay { width: 220px; transform: rotate(2deg); cursor: grabbing; box-shadow: 0 12px 30px rgb(0 0 0 / 0.25); }
+.drag-overlay { width: 220px; transform: scale(1.03) rotate(1.5deg); cursor: grabbing; box-shadow: 0 16px 36px rgb(0 0 0 / 0.3); }
 
 .placing-banner {
   position: sticky; top: 58px; z-index: 20; display: flex; align-items: center; gap: 10px; justify-content: space-between;
@@ -483,3 +483,6 @@ ol.howto { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 .meal-toggle input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 .meal-toggle.on { border-color: var(--accent); background: var(--accent-soft); }
 .meal-toggle.always { cursor: default; }
+
+/* no grey tap flash on draggable cards (it looks like a failed tap) */
+.meal, .book-item { -webkit-tap-highlight-color: transparent; }
