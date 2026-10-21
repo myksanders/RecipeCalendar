@@ -327,6 +327,7 @@ export function buildApp(opts: AppOptions): FastifyInstance {
     const patch = parse(
       z.object({
         varietyWeeks: z.number().int().min(0).max(26).optional(),
+        weekStart: z.union([z.literal(0), z.literal(1)]).optional(),
         people: z.array(z.string().trim().min(1)).max(12).optional(),
       }),
       req.body,

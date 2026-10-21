@@ -82,6 +82,32 @@ export function SettingsPage() {
         </section>
 
         <section className="card">
+          <h2>Calendar</h2>
+          <div className="field">
+            Weeks start on
+            <div className="seg" role="radiogroup" aria-label="Weeks start on" style={{ justifySelf: 'start' }}>
+              {([
+                [0, 'Sunday'],
+                [1, 'Monday'],
+              ] as const).map(([v, label]) => (
+                <button
+                  key={v}
+                  role="radio"
+                  aria-checked={s.weekStart === v}
+                  className={s.weekStart === v ? 'on' : ''}
+                  onClick={() => s.weekStart !== v && save({ weekStart: v })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="muted small" style={{ margin: 0 }}>
+            Used by the week and month views and the shopping list’s “This week” / “Next week”.
+          </p>
+        </section>
+
+        <section className="card">
           <h2>Variety</h2>
           <label className="field">
             Warn when a recipe repeats within this many weeks (0 = never warn)

@@ -4,7 +4,7 @@ import { addDays, startOfWeek, today as todayFn } from '../../../shared/dates';
 import { formatQuantity } from '../../../shared/ingredients';
 import { shoppingListToText } from '../../../shared/shopping';
 import { CATEGORIES, type Category, type ShoppingItem, type ShoppingList } from '../../../shared/types';
-import { api } from '../api';
+import { api, cachedSettings } from '../api';
 import { fmtRange, useToast } from '../ui';
 
 const SHORTCUT_KEY = 'shopping.shortcutName';
@@ -33,11 +33,17 @@ export function ShoppingPage() {
   }, [range, toast]);
   useEffect(load, [load]);
 
+  const [weekStart, setWeekStart] = useState(() => cachedSettings().weekStart);
+  useEffect(() => {
+    api.settings().then((s) => setWeekStart(s.weekStart)).catch(() => {});
+  }, []);
+
   const t = todayFn();
+  const ws = startOfWeek(t, weekStart);
   const presets = [
     { label: 'Next 7 days', from: t, to: addDays(t, 6) },
-    { label: 'This week', from: startOfWeek(t), to: addDays(startOfWeek(t), 6) },
-    { label: 'Next week', from: addDays(startOfWeek(t), 7), to: addDays(startOfWeek(t), 13) },
+    { label: 'This week', from: ws, to: addDays(ws, 6) },
+    { label: 'Next week', from: addDays(ws, 7), to: addDays(ws, 13) },
   ];
 
   async function tick(item: ShoppingItem) {

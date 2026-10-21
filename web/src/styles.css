@@ -138,8 +138,8 @@ input[type='text'], input[type='number'], input[type='url'], input[type='date'],
 }
 textarea { min-height: 90px; resize: vertical; }
 input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-label.field { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
-label.field > input, label.field > select, label.field > textarea { color: var(--text); font-weight: 400; font-size: 0.95rem; }
+.field { display: grid; gap: 4px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+.field > input, .field > select, .field > textarea { color: var(--text); font-weight: 400; font-size: 0.95rem; }
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
 .error { color: var(--danger); font-weight: 600; }

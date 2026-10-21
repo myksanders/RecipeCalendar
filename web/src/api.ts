@@ -69,9 +69,30 @@ export const api = {
     req<void>('PATCH', `/api/extras/${id}`, patch),
   deleteExtra: (id: number) => req<void>('DELETE', `/api/extras/${id}`),
 
-  settings: () => req<Settings>('GET', '/api/settings'),
-  updateSettings: (s: Partial<Settings>) => req<Settings>('PUT', '/api/settings', s),
+  settings: () => req<Settings>('GET', '/api/settings').then(cacheSettings),
+  updateSettings: (s: Partial<Settings>) => req<Settings>('PUT', '/api/settings', s).then(cacheSettings),
 };
+
+const SETTINGS_KEY = 'settings.cache';
+const DEFAULT_SETTINGS: Settings = { varietyWeeks: 3, weekStart: 1, people: ['Everyone', 'Kid'] };
+
+function cacheSettings(s: Settings): Settings {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch {
+    // private mode
+  }
+  return s;
+}
+
+/** Last known settings, so the first render already uses the household's week start. */
+export function cachedSettings(): Settings {
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? '{}') };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
 
 /** Shrink phone photos (often 4–8 MB) to a sensible JPEG before upload. */
 export async function resizeImage(file: Blob, maxSide = 1600, quality = 0.85): Promise<Blob> {

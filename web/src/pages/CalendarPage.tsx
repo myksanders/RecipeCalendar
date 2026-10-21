@@ -12,7 +12,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addDays, parseISODate, startOfWeek, today as todayFn, toISODate } from '../../../shared/dates';
 import type { EntryInput, MealEntry, RecipeSummary, Settings } from '../../../shared/types';
-import { api } from '../api';
+import { api, cachedSettings } from '../api';
 import { AddMealDialog } from '../components/AddMealDialog';
 import { MealCard, MealCardView } from '../components/MealCard';
 import { MealDetail } from '../components/MealDetail';
@@ -90,7 +90,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
   const [anchor, setAnchor] = useState(today);
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
-  const [settings, setSettings] = useState<Settings>({ varietyWeeks: 3, people: ['Everyone', 'Kid'] });
+  const [settings, setSettings] = useState<Settings>(cachedSettings);
   const [openId, setOpenId] = useState<number | null>(openEntryId);
   const [addFor, setAddFor] = useState<string | null>(null);
   const [placing, setPlacing] = useState<RecipeSummary | null>(null);
@@ -107,20 +107,21 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
     }
   }, [view]);
 
+  const weekStart = settings.weekStart;
   const { from, to, days } = useMemo(() => {
     if (view === 'week') {
-      const from = startOfWeek(anchor);
+      const from = startOfWeek(anchor, weekStart);
       const days = Array.from({ length: 7 }, (_, i) => addDays(from, i));
       return { from, to: days[6], days };
     }
     const a = parseISODate(anchor);
     const first = toISODate(new Date(a.getFullYear(), a.getMonth(), 1, 12));
     const last = toISODate(new Date(a.getFullYear(), a.getMonth() + 1, 0, 12));
-    const from = startOfWeek(first);
+    const from = startOfWeek(first, weekStart);
     const days: string[] = [];
     for (let d = from; d <= last || days.length % 7 !== 0; d = addDays(d, 1)) days.push(d);
     return { from, to: days[days.length - 1], days };
-  }, [view, anchor]);
+  }, [view, anchor, weekStart]);
 
   const refresh = useCallback(() => {
     api.entries(from, to).then(setEntries).catch(() => {});
@@ -287,7 +288,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
             </div>
           ) : (
             <div className="month-grid">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+              {days.slice(0, 7).map(dowShort).map((d) => (
                 <div key={d} className="dow-head">
                   {d}
                 </div>

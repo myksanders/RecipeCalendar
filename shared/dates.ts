@@ -22,11 +22,13 @@ export function today(): string {
   return toISODate(new Date());
 }
 
-/** Monday of the week containing the date (Dutch weeks start on Monday). */
-export function startOfWeek(s: string): string {
+export type WeekStart = 0 | 1; // 0 = Sunday, 1 = Monday
+
+/** First day of the week containing the date; weeks start on Monday unless weekStart is 0 (Sunday). */
+export function startOfWeek(s: string, weekStart: WeekStart = 1): string {
   const d = parseISODate(s);
-  const dow = (d.getDay() + 6) % 7;
-  return addDays(s, -dow);
+  const offset = (d.getDay() - weekStart + 7) % 7;
+  return addDays(s, -offset);
 }
 
 export function isValidISODate(s: unknown): s is string {

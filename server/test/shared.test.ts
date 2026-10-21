@@ -101,4 +101,9 @@ describe('dates', () => {
     expect(startOfWeek('2026-10-26')).toBe('2026-10-26');
     expect(addDays('2026-10-31', 1)).toBe('2026-11-01');
   });
+  it('weeks can start on Sunday', () => {
+    expect(startOfWeek('2026-10-21', 0)).toBe('2026-10-18');
+    expect(startOfWeek('2026-10-24', 0)).toBe('2026-10-18');
+    expect(startOfWeek('2026-10-25', 0)).toBe('2026-10-25');
+  });
 });

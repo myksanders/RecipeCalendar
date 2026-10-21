@@ -107,6 +107,13 @@ describe('API', () => {
     expect((await app.inject({ method: 'POST', url: '/api/entries', payload: { date: '2026-10-26', kind: 'recipe', recipeId: 999 } })).statusCode).toBe(400);
   });
 
+  it('stores the week start setting', async () => {
+    expect((await app.inject({ method: 'GET', url: '/api/settings' })).json().weekStart).toBe(1);
+    const res = await app.inject({ method: 'PUT', url: '/api/settings', payload: { weekStart: 0 } });
+    expect(res.json()).toMatchObject({ weekStart: 0, varietyWeeks: 3 });
+    expect((await app.inject({ method: 'PUT', url: '/api/settings', payload: { weekStart: 3 } })).statusCode).toBe(400);
+  });
+
   it('serves an iCal feed', async () => {
     const res = await app.inject({ method: 'GET', url: '/calendar.ics' });
     expect(res.statusCode).toBe(200);

@@ -135,5 +135,6 @@ export interface ExtraItem {
 
 export interface Settings {
   varietyWeeks: number;
+  weekStart: 0 | 1; // 0 = Sunday, 1 = Monday
   people: string[];
 }
