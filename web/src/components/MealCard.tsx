@@ -34,7 +34,17 @@ export function MealCardView({ e, compact, showSlot = true }: { e: MealEntry; co
   );
 }
 
-export function MealCard({ e, compact, onOpen }: { e: MealEntry; compact?: boolean; onOpen: (e: MealEntry) => void }) {
+export function MealCard({
+  e,
+  compact,
+  big,
+  onOpen,
+}: {
+  e: MealEntry;
+  compact?: boolean;
+  big?: boolean;
+  onOpen: (e: MealEntry) => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `entry-${e.id}`, data: { entry: e } });
   return (
     <div
@@ -43,14 +53,14 @@ export function MealCard({ e, compact, onOpen }: { e: MealEntry; compact?: boole
       {...attributes}
       role="button"
       aria-label={`${e.displayTitle}, ${SLOT_LABEL[e.slot]}`}
-      className={`meal kind-${e.kind} ${compact ? 'compact' : ''} ${isDragging ? 'dragging' : ''}`}
+      className={`meal kind-${e.kind} ${compact ? 'compact' : ''} ${big ? 'big' : ''} ${isDragging ? 'dragging' : ''}`}
       onClick={(ev) => {
         ev.stopPropagation();
         onOpen(e);
       }}
       onKeyDown={(k) => k.key === 'Enter' && onOpen(e)}
     >
-      <MealCardView e={e} compact={compact} />
+      <MealCardView e={e} compact={compact} showSlot={!big} />
     </div>
   );
 }

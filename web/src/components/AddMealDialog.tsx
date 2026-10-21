@@ -10,6 +10,7 @@ const KINDS: EntryKind[] = ['recipe', 'leftovers', 'dining_out', 'fend', 'note']
 
 export function AddMealDialog({
   date,
+  initialSlot,
   today,
   recipes,
   people,
@@ -17,6 +18,7 @@ export function AddMealDialog({
   onAdd,
 }: {
   date: string;
+  initialSlot?: Slot;
   today: string;
   recipes: RecipeSummary[];
   people: string[];
@@ -24,7 +26,7 @@ export function AddMealDialog({
   onAdd: (input: EntryInput, recipe?: RecipeSummary) => Promise<void>;
 }) {
   const [kind, setKind] = useState<EntryKind>('recipe');
-  const [slot, setSlot] = useState<Slot>('dinner');
+  const [slot, setSlot] = useState<Slot>(initialSlot ?? 'dinner');
   const [who, setWho] = useState('');
   const [title, setTitle] = useState('');
   const [query, setQuery] = useState('');
@@ -40,11 +42,10 @@ export function AddMealDialog({
   }, [kind, date, recent]);
 
   useEffect(() => {
-    if (kind === 'leftovers') {
-      setSlot('lunch');
-      if (people.includes('Kid')) setWho('Kid');
-    } else setSlot('dinner');
-  }, [kind, people]);
+    if (kind === 'leftovers' && people.includes('Kid')) setWho('Kid');
+    // Opened from a specific slot (split view): keep it; otherwise pick a sensible default.
+    if (!initialSlot) setSlot(kind === 'leftovers' ? 'lunch' : 'dinner');
+  }, [kind, people, initialSlot]);
 
   const list = useMemo(() => sortRecipes(recipes, 'stale', query), [recipes, query]);
 

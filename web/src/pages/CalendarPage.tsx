@@ -11,19 +11,22 @@ import {
 } from '@dnd-kit/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addDays, parseISODate, startOfWeek, today as todayFn, toISODate } from '../../../shared/dates';
-import type { EntryInput, MealEntry, RecipeSummary, Settings } from '../../../shared/types';
+import type { EntryInput, MealEntry, RecipeSummary, Settings, Slot } from '../../../shared/types';
 import { api, cachedSettings } from '../api';
 import { AddMealDialog } from '../components/AddMealDialog';
 import { MealCard, MealCardView } from '../components/MealCard';
 import { MealDetail } from '../components/MealDetail';
 import { RecipeBook } from '../components/RecipeBook';
+import { SplitView } from '../components/SplitView';
 import { dowShort, fmtDay, fmtRange, Modal, monthName, navigate, Photo, useToast } from '../ui';
 
-type View = 'week' | 'month';
+// "split": a strip of day tiles with the selected day's meals below (agenda style).
+type View = 'week' | 'month' | 'split';
 
 function loadView(): View {
   try {
-    return localStorage.getItem('calendar.view') === 'month' ? 'month' : 'week';
+    const v = localStorage.getItem('calendar.view');
+    return v === 'month' || v === 'split' ? v : 'week';
   } catch {
     return 'week';
   }
@@ -92,7 +95,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
   const [recipes, setRecipes] = useState<RecipeSummary[]>([]);
   const [settings, setSettings] = useState<Settings>(cachedSettings);
   const [openId, setOpenId] = useState<number | null>(openEntryId);
-  const [addFor, setAddFor] = useState<string | null>(null);
+  const [addFor, setAddFor] = useState<{ date: string; slot?: Slot } | null>(null);
   const [placing, setPlacing] = useState<RecipeSummary | null>(null);
   const [bookOpen, setBookOpen] = useState(false);
   const [dragging, setDragging] = useState<{ recipe?: RecipeSummary; entry?: MealEntry } | null>(null);
@@ -109,7 +112,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
 
   const weekStart = settings.weekStart;
   const { from, to, days } = useMemo(() => {
-    if (view === 'week') {
+    if (view !== 'month') {
       const from = startOfWeek(anchor, weekStart);
       const days = Array.from({ length: 7 }, (_, i) => addDays(from, i));
       return { from, to: days[6], days };
@@ -193,11 +196,17 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
     refresh();
   }
 
-  function onDayAdd(date: string) {
+  function onDayAdd(date: string, slot?: Slot) {
     if (placing) {
-      addEntry({ date, kind: 'recipe', recipeId: placing.id, slot: 'dinner' }, placing);
+      addEntry({ date, kind: 'recipe', recipeId: placing.id, slot: slot ?? 'dinner' }, placing);
       setPlacing(null);
-    } else setAddFor(date);
+    } else setAddFor({ date, slot });
+  }
+
+  // Split view: the selected day is the anchor, so the strip always shows its week.
+  function onTileTap(date: string) {
+    if (placing) onDayAdd(date);
+    else setAnchor(date);
   }
 
   const sensors = useSensors(
@@ -218,7 +227,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
   }
 
   function step(dir: number) {
-    if (view === 'week') setAnchor(addDays(anchor, dir * 7));
+    if (view !== 'month') setAnchor(addDays(anchor, dir * 7));
     else {
       const a = parseISODate(anchor);
       setAnchor(toISODate(new Date(a.getFullYear(), a.getMonth() + dir, 1, 12)));
@@ -241,7 +250,7 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
         <RecipeBook recipes={recipes} today={today} selectedId={placing?.id ?? null} onSelect={selectFromBook} />
         <div className="cal-main">
           <div className="cal-toolbar">
-            <h1>{view === 'week' ? fmtRange(from, to) : monthName(anchor)}</h1>
+            <h1>{view === 'month' ? monthName(anchor) : fmtRange(from, to)}</h1>
             <div className="btn-row">
               <button className="btn icon" onClick={() => step(-1)} aria-label="Previous">
                 ‹
@@ -260,6 +269,9 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
               <button className={view === 'month' ? 'on' : ''} onClick={() => setView('month')}>
                 Month
               </button>
+              <button className={view === 'split' ? 'on' : ''} onClick={() => setView('split')}>
+                Split
+              </button>
             </div>
           </div>
 
@@ -272,7 +284,19 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
             </div>
           )}
 
-          {view === 'week' ? (
+          {view === 'split' ? (
+            <SplitView
+              days={days}
+              byDay={byDay}
+              today={today}
+              selected={anchor}
+              placing={!!placing}
+              onTileTap={onTileTap}
+              onAdd={onDayAdd}
+              onOpen={(e) => setOpenId(e.id)}
+              onSwipe={(dir) => setAnchor(addDays(anchor, dir))}
+            />
+          ) : view === 'week' ? (
             <div className="week-grid">
               {days.map((d) => (
                 <DayCell
@@ -355,7 +379,8 @@ export function CalendarPage({ openEntryId }: { openEntryId: number | null }) {
 
       {addFor && (
         <AddMealDialog
-          date={addFor}
+          date={addFor.date}
+          initialSlot={addFor.slot}
           today={today}
           recipes={recipes}
           people={settings.people}
