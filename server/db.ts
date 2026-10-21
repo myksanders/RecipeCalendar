@@ -70,6 +70,14 @@ const MIGRATIONS: string[] = [
     value TEXT NOT NULL
   );
   `,
+  // 2: Dutch names the household taught (English ingredient key -> AH name).
+  `
+  CREATE TABLE dutch_names (
+    key TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    nl TEXT NOT NULL
+  );
+  `,
 ];
 
 export type DB = DatabaseSync;

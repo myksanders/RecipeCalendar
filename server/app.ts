@@ -3,10 +3,10 @@ import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
 import { z } from 'zod';
 import { addDays, isValidISODate, today } from '../shared/dates';
+import { guessCategoryWithDutch } from '../shared/dutch';
 import { formatIngredient } from '../shared/ingredients';
 import { shoppingListToText } from '../shared/shopping';
 import { CATEGORIES, ENTRY_KINDS, SLOTS, visibleSlots } from '../shared/types';
-import { guessCategory } from '../shared/categorize';
 import type { Repo } from './repo';
 import { buildIcs } from './services/ical';
 import { ImportError, importRecipeFromUrl } from './services/importer';
@@ -126,7 +126,7 @@ export function buildApp(opts: AppOptions): FastifyInstance {
   function normalizeRecipe(input: z.infer<typeof recipeSchema>) {
     return {
       ...input,
-      ingredients: input.ingredients.map((i) => ({ ...i, category: i.category ?? guessCategory(i.name) })),
+      ingredients: input.ingredients.map((i) => ({ ...i, category: i.category ?? guessCategoryWithDutch(i.name) })),
     };
   }
 
@@ -292,7 +292,7 @@ export function buildApp(opts: AppOptions): FastifyInstance {
   app.post('/api/extras', async (req, reply) => {
     const b = parse(z.object({ name: z.string().trim().min(1), category: category.optional() }), req.body);
     reply.status(201);
-    return repo.addExtra(b.name, b.category ?? guessCategory(b.name));
+    return repo.addExtra(b.name, b.category ?? guessCategoryWithDutch(b.name));
   });
 
   app.patch('/api/extras/:id', async (req) => {
@@ -316,7 +316,17 @@ export function buildApp(opts: AppOptions): FastifyInstance {
 
   app.get('/api/categorize', async (req) => {
     const { name } = parse(z.object({ name: z.string() }), req.query);
-    return { category: guessCategory(name) };
+    return { category: guessCategoryWithDutch(name) };
+  });
+
+  // ---------- Dutch names ----------
+
+  app.get('/api/dutch-names', async () => repo.listDutchNames());
+
+  /** Teach the Dutch (AH) name for an ingredient; an empty nl forgets it. */
+  app.put('/api/dutch-names', async (req) => {
+    const b = parse(z.object({ name: z.string().trim().min(1), nl: z.string().max(80) }), req.body);
+    return repo.setDutchName(b.name, b.nl);
   });
 
   // ---------- settings ----------

@@ -4,6 +4,7 @@ import { parseIngredientLine, parseQuantity, formatIngredient } from '../../shar
 import { buildShoppingList, shoppingListToText } from '../../shared/shopping';
 import { addDays, startOfWeek } from '../../shared/dates';
 import { leftoverSlot, visibleSlots } from '../../shared/types';
+import { differsFromName, dutchKey, guessCategoryWithDutch, resolveDutch } from '../../shared/dutch';
 
 describe('guessCategory', () => {
   it.each([
@@ -89,6 +90,15 @@ describe('buildShoppingList', () => {
     expect(text).not.toContain('old');
   });
 
+  it('converts pounds so English and Dutch amounts merge', () => {
+    const list = buildShoppingList('a', 'b', [
+      meal(1, '2026-10-26', 'Bowl', [[1, 'rundergehakt', 1, 'lb']]),
+      meal(2, '2026-10-27', 'Lasagne', [[2, 'rundergehakt', 500, 'g']]),
+    ]);
+    expect(list.groups[0].items).toHaveLength(1);
+    expect(list.groups[0].items[0]).toMatchObject({ quantity: 954, unit: 'g' });
+  });
+
   it('scales by servings', () => {
     const list = buildShoppingList('a', 'b', [meal(1, '2026-10-26', 'X', [[1, 'rijst', 300, 'g']], [], 2)]);
     expect(list.groups[0].items[0].quantity).toBe(600);
@@ -119,4 +129,70 @@ describe('meal slots', () => {
     expect(leftoverSlot(['dinner'])).toBe('dinner');
     expect(leftoverSlot(['lunch', 'dinner'])).toBe('lunch');
   });
+});
+
+describe('Dutch names', () => {
+  it.each([
+    ['lean ground beef', 'rundergehakt'],
+    ['green onions', 'bosui'],
+    ['scallions', 'bosui'],
+    ['garlic cloves', 'knoflook'],
+    ['toasted sesame oil', 'sesamolie'],
+    ['toasted sesame seeds', 'sesamzaad'],
+    ['cooked short grain rice', 'sushirijst'],
+    ['eggs', 'eieren'],
+    ['potatoes', 'aardappelen'],
+    ['red pepper flakes', 'chilivlokken'],
+    ['red bell pepper', 'paprika'],
+    ['ground black pepper', 'zwarte peper'],
+    ['coconut milk', 'kokosmelk'],
+    ['peanut butter', 'pindakaas'],
+    ['gochujang', 'gochujang'],
+  ])('%s -> %s', (en, nl) => expect(resolveDutch(en)).toEqual({ nl, source: 'dictionary' }));
+
+  it('recognises names that are already Dutch', () => {
+    expect(resolveDutch('rundergehakt')).toEqual({ nl: 'rundergehakt', source: 'dutch' });
+    expect(resolveDutch('pandanrijst').source).toBe('dutch');
+    expect(resolveDutch('geraspte kaas').source).toBe('dutch');
+    expect(resolveDutch('something odd')).toEqual({ nl: null, source: null });
+  });
+
+  it('prefers what the household taught', () => {
+    const learned = new Map([[dutchKey('Fresh scallions'), 'lente-ui']]);
+    expect(resolveDutch('2 large scallions', learned)).toEqual({ nl: 'lente-ui', source: 'learned' });
+    expect(dutchKey('Finely chopped Green Onions')).toBe('green onion');
+  });
+
+  it('uses the Dutch name to guess a missing shop category', () => {
+    expect(guessCategory('scallions')).toBe('Other');
+    expect(guessCategoryWithDutch('scallions')).toBe('Vegetables & Fruit');
+    expect(guessCategoryWithDutch('toasted sesame seeds')).toBe('Pantry');
+  });
+
+  it('knows when the Dutch name adds something', () => {
+    expect(differsFromName('scallions', 'bosui')).toBe(true);
+    expect(differsFromName('Broccoli', 'broccoli')).toBe(false);
+    expect(differsFromName('x', null)).toBe(false);
+  });
+
+  it('merges English and Dutch names for the same thing on the shopping list', () => {
+    const toDutch = (n: string) => resolveDutch(n).nl;
+    const meal = (entryId: number, title: string, name: string, quantity: number) => ({
+      entryId, date: '2026-10-26', title, scale: 1, have: new Set<number>(),
+      ingredients: [{ id: entryId, name, quantity, unit: '', category: guessCategory(name) }],
+    });
+    const list = buildShoppingList('a', 'b', [meal(1, 'Bibimbap', 'green onions', 2), meal(2, 'Stamppot', 'bosui', 1)], [], toDutch);
+    const items = list.groups.flatMap((g) => g.items);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ dutch: 'bosui', quantity: 3, name: 'green onions' });
+    expect(shoppingListToText(list)).toContain('- 3 bosui (green onions)');
+  });
+});
+
+describe('ingredient fractions', () => {
+  it.each([
+    ['1/4 cup soy sauce', 0.25, 'cup', 'soy sauce'],
+    ['1 1/2 cups rice', 1.5, 'cups', 'rice'],
+    ['1 lb lean ground beef', 1, 'lb', 'lean ground beef'],
+  ])('%s', (line, q, unit, name) => expect(parseIngredientLine(line)).toMatchObject({ quantity: q, unit, name }));
 });

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { guessCategory } from '../../../shared/categorize';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { differsFromName, dutchKey, guessCategoryWithDutch, resolveDutch } from '../../../shared/dutch';
 import { parseIngredientLine } from '../../../shared/ingredients';
 import { CATEGORIES, type Category, type Ingredient, type RecipeInput } from '../../../shared/types';
 import { api, resizeImage } from '../api';
+import { DutchNameForm } from '../components/DutchName';
 import { navigate, Photo, useToast } from '../ui';
 
 interface IngRow {
@@ -53,6 +54,15 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const [learned, setLearned] = useState<Map<string, string>>(new Map());
+  const [editingDutch, setEditingDutch] = useState<number | null>(null); // row key
+
+  useEffect(() => {
+    api
+      .dutchNames()
+      .then((list) => setLearned(new Map(list.map((d) => [d.key, d.nl]))))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (id === null) return;
@@ -120,7 +130,7 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
       rs.map((r) => {
         if (r.key !== key) return r;
         const next = { ...r, ...patch };
-        if (patch.name !== undefined && !next.categoryTouched) next.category = guessCategory(patch.name);
+        if (patch.name !== undefined && !next.categoryTouched) next.category = guessCategoryWithDutch(patch.name, learned);
         return next;
       }),
     );
@@ -133,7 +143,7 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
       .filter(Boolean)
       .map(parseIngredientLine)
       .map(toRow)
-      .map((r) => ({ ...r, categoryTouched: false }));
+      .map((r) => ({ ...r, category: guessCategoryWithDutch(r.name, learned), categoryTouched: false }));
     setRows((rs) => [...rs.filter((r) => r.name.trim()), ...parsed]);
     setBulk('');
     setShowBulk(false);
@@ -324,25 +334,55 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
             <span className="hide-sm">Aisle</span>
             <span />
           </div>
-          {rows.map((r) => (
-            <div key={r.key} className="ing-row">
-              <input type="text" inputMode="decimal" value={r.qty} onChange={(e) => updateRow(r.key, { qty: e.target.value })} aria-label="Quantity" />
-              <input type="text" value={r.unit} onChange={(e) => updateRow(r.key, { unit: e.target.value })} aria-label="Unit" placeholder="g" />
-              <input type="text" value={r.name} onChange={(e) => updateRow(r.key, { name: e.target.value })} aria-label="Ingredient" placeholder="ingredient" />
-              <select
-                value={r.category}
-                onChange={(e) => updateRow(r.key, { category: e.target.value as Category, categoryTouched: true })}
-                aria-label="Shop category"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-              <button className="btn ghost icon small" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} aria-label="Remove ingredient">
-                ✕
-              </button>
-            </div>
-          ))}
+          {rows.map((r) => {
+            const nl = r.name.trim() ? resolveDutch(r.name, learned).nl : null;
+            return (
+              <Fragment key={r.key}>
+                <div className="ing-row">
+                  <input type="text" inputMode="decimal" value={r.qty} onChange={(e) => updateRow(r.key, { qty: e.target.value })} aria-label="Quantity" />
+                  <input type="text" value={r.unit} onChange={(e) => updateRow(r.key, { unit: e.target.value })} aria-label="Unit" placeholder="g" />
+                  <input type="text" value={r.name} onChange={(e) => updateRow(r.key, { name: e.target.value })} aria-label="Ingredient" placeholder="ingredient" />
+                  <select
+                    value={r.category}
+                    onChange={(e) => updateRow(r.key, { category: e.target.value as Category, categoryTouched: true })}
+                    aria-label="Shop category"
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                  <button className="btn ghost icon small" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} aria-label="Remove ingredient">
+                    ✕
+                  </button>
+                </div>
+                {r.name.trim() && (
+                  <div className="ing-hint nl-hint">
+                    {editingDutch === r.key ? (
+                      <DutchNameForm
+                        name={r.name}
+                        current={nl}
+                        onSaved={(value) => {
+                          setLearned((m) => {
+                            const next = new Map(m);
+                            if (value) next.set(dutchKey(r.name), value);
+                            else next.delete(dutchKey(r.name));
+                            return next;
+                          });
+                          setEditingDutch(null);
+                        }}
+                        onCancel={() => setEditingDutch(null)}
+                      />
+                    ) : (
+                      <>
+                        🇳🇱 {nl ? (differsFromName(r.name, nl) ? nl : 'same in Dutch') : <span className="unknown">no Dutch name yet</span>}{' '}
+                        <button onClick={() => setEditingDutch(r.key)}>{nl ? 'edit' : '+ add'}</button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </Fragment>
+            );
+          })}
           <button className="btn small" onClick={() => setRows((rs) => [...rs, blankRow()])}>
             + Ingredient
           </button>

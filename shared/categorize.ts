@@ -52,7 +52,8 @@ const KEYWORDS: Record<Category, string[]> = {
     'mayo', 'jam', 'hagelslag', 'havermout', 'oats', 'muesli', 'cornflakes', 'cereal', 'bakpoeder',
     'baking powder', 'gist', 'yeast', 'vanille', 'vanilla', 'kaneel', 'cinnamon', 'oregano', 'tijm',
     'thyme', 'rozemarijn', 'rosemary', 'paprikapoeder', 'paprika powder', 'chocolade', 'chocolate',
-    'tonijn', 'tuna', 'maïzena', 'cornstarch', 'pesto', 'wok saus', 'saus', 'sauce',
+    'tonijn', 'tuna', 'maïzena', 'cornstarch', 'pesto', 'wok saus', 'saus', 'sauce', 'sesame seed', 'sesame seeds',
+    'sesamzaad', 'zaden', 'seeds', 'gochujang', 'gochugaru', 'kimchi',
   ],
   Frozen: [
     'diepvries', 'frozen', 'ijs', 'ice cream', 'diepvriesspinazie', 'friet', 'patat', 'fries',

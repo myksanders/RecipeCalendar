@@ -1,5 +1,6 @@
 import { transaction, type DB } from './db';
 import { today } from '../shared/dates';
+import { dutchKey, resolveDutch } from '../shared/dutch';
 import { buildShoppingList, type PlannedMeal } from '../shared/shopping';
 import type {
   Category,
@@ -20,22 +21,50 @@ type Row = Record<string, any>;
 const DEFAULT_SETTINGS: Settings = { varietyWeeks: 3, weekStart: 1, mealSlots: ['dinner'], people: ['Everyone', 'Kid'] };
 
 export function createRepo(db: DB) {
+  // ---------- Dutch names ----------
+
+  function learnedDutch(): Map<string, string> {
+    return new Map((db.prepare('SELECT key, nl FROM dutch_names').all() as Row[]).map((r) => [r.key, r.nl]));
+  }
+
+  function listDutchNames(): { key: string; name: string; nl: string }[] {
+    return db.prepare('SELECT key, name, nl FROM dutch_names ORDER BY name COLLATE NOCASE').all() as {
+      key: string;
+      name: string;
+      nl: string;
+    }[];
+  }
+
+  /** Teach (or with an empty nl, forget) the Dutch name for an ingredient. */
+  function setDutchName(name: string, nl: string) {
+    const key = dutchKey(name) || name.trim().toLowerCase();
+    if (nl.trim()) {
+      db.prepare(
+        'INSERT INTO dutch_names (key, name, nl) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET name = excluded.name, nl = excluded.nl',
+      ).run(key, name.trim(), nl.trim());
+    } else db.prepare('DELETE FROM dutch_names WHERE key IN (?, ?)').run(key, name.trim().toLowerCase());
+    return { key, name: name.trim(), nl: nl.trim() };
+  }
+
   // ---------- recipes ----------
 
-  function rowToRecipe(r: Row): Recipe {
+  function rowToRecipe(r: Row, learned = learnedDutch()): Recipe {
     const ingredients = db
       .prepare('SELECT * FROM ingredients WHERE recipe_id = ? ORDER BY sort_order, id')
       .all(r.id)
-      .map(
-        (i: Row): Ingredient => ({
+      .map((i: Row): Ingredient => {
+        const dutch = resolveDutch(i.name, learned);
+        return {
           id: i.id,
           name: i.name,
           quantity: i.quantity,
           unit: i.unit,
           category: i.category,
           ...(i.note ? { note: i.note } : {}),
-        }),
-      );
+          dutch: dutch.nl,
+          dutchSource: dutch.source,
+        };
+      });
     const steps = db
       .prepare('SELECT text FROM steps WHERE recipe_id = ? ORDER BY sort_order, id')
       .all(r.id)
@@ -365,7 +394,8 @@ export function createRepo(db: DB) {
         have,
       };
     });
-    return buildShoppingList(from, to, meals, listExtras());
+    const learned = learnedDutch();
+    return buildShoppingList(from, to, meals, listExtras(), (name) => resolveDutch(name, learned).nl);
   }
 
   // ---------- extras ----------
@@ -427,6 +457,8 @@ export function createRepo(db: DB) {
   }
 
   return {
+    listDutchNames,
+    setDutchName,
     getRecipe,
     listRecipes,
     createRecipe,

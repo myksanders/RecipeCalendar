@@ -47,7 +47,10 @@ export function parseQuantity(raw: string): number | null {
   return total;
 }
 
-const QTY_RE = /^((?:\d+(?:[.,]\d+)?\s*)?(?:\d+\/\d+|[½¼¾⅓⅔⅛])?(?:\s*[-–]\s*\d+(?:[.,]\d+)?)?)\s*/;
+// A leading amount: "1 1/2", "1/4", "1½", "½", "0,5", "2-3". Fractions are tried
+// first so "1/4" isn't read as "1" followed by "/4".
+const QTY_RE =
+  /^((?:\d+\s+)?\d+\/\d+|\d+(?:[.,]\d+)?\s*[½¼¾⅓⅔⅛]?|[½¼¾⅓⅔⅛])((?:\s*[-–]\s*\d+(?:[.,]\d+)?)?)\s*/;
 
 /** Parse a free-text ingredient line like "500 g rundergehakt" or "2 tbsp olive oil, divided". */
 export function parseIngredientLine(line: string): Ingredient {
@@ -56,7 +59,7 @@ export function parseIngredientLine(line: string): Ingredient {
   let unit = '';
   const m = s.match(QTY_RE);
   if (m && m[1].trim()) {
-    quantity = parseQuantity(m[1]);
+    quantity = parseQuantity(m[1] + m[2]);
     s = s.slice(m[0].length);
   }
   // "500g" style glued units

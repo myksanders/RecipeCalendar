@@ -121,6 +121,30 @@ describe('API', () => {
     expect((await app.inject({ method: 'PUT', url: '/api/settings', payload: { mealSlots: ['brunch'] } })).statusCode).toBe(400);
   });
 
+  it('learns Dutch names and uses them on the shopping list', async () => {
+    const r = (await app.inject({ method: 'POST', url: '/api/recipes', payload: { title: 'Bowl', ingredients: [
+      { name: 'ground beef', quantity: 500, unit: 'g' },
+      { name: 'perilla leaves', quantity: 10, unit: '' },
+    ] } })).json();
+    expect(r.ingredients[0]).toMatchObject({ dutch: 'rundergehakt', dutchSource: 'dictionary' });
+    expect(r.ingredients[1].dutch).toBeNull();
+    await app.inject({ method: 'POST', url: '/api/entries', payload: { date: '2026-10-26', kind: 'recipe', recipeId: r.id } });
+
+    let res = await app.inject({ method: 'PUT', url: '/api/dutch-names', payload: { name: 'Perilla leaves', nl: 'shiso blad' } });
+    expect(res.json()).toEqual({ key: 'perilla leave', name: 'Perilla leaves', nl: 'shiso blad' });
+    expect((await app.inject({ method: 'GET', url: '/api/dutch-names' })).json()).toEqual([
+      { key: 'perilla leave', name: 'Perilla leaves', nl: 'shiso blad' },
+    ]);
+    const items = (await app.inject({ method: 'GET', url: '/api/shopping-list?from=2026-10-26&to=2026-10-26' })).json()
+      .groups.flatMap((g: any) => g.items);
+    expect(items.map((i: any) => i.dutch).sort()).toEqual(['rundergehakt', 'shiso blad']);
+    expect((await app.inject({ method: 'GET', url: `/api/recipes/${r.id}` })).json().ingredients[1].dutchSource).toBe('learned');
+
+    // forget it again
+    await app.inject({ method: 'PUT', url: '/api/dutch-names', payload: { name: 'Perilla leaves', nl: '' } });
+    expect((await app.inject({ method: 'GET', url: '/api/dutch-names' })).json()).toEqual([]);
+  });
+
   it('serves an iCal feed', async () => {
     const res = await app.inject({ method: 'GET', url: '/calendar.ics' });
     expect(res.statusCode).toBe(200);

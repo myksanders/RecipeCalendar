@@ -69,6 +69,10 @@ export const api = {
     req<void>('PATCH', `/api/extras/${id}`, patch),
   deleteExtra: (id: number) => req<void>('DELETE', `/api/extras/${id}`),
 
+  dutchNames: () => req<{ key: string; name: string; nl: string }[]>('GET', '/api/dutch-names'),
+  setDutchName: (name: string, nl: string) =>
+    req<{ key: string; name: string; nl: string }>('PUT', '/api/dutch-names', { name, nl }),
+
   settings: () => req<Settings>('GET', '/api/settings').then(cacheSettings),
   updateSettings: (s: Partial<Settings>) => req<Settings>('PUT', '/api/settings', s).then(cacheSettings),
 };

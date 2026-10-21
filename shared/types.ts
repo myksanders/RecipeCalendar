@@ -41,6 +41,9 @@ export interface Ingredient {
   unit: string;
   category: Category;
   note?: string;
+  /** Dutch name for the AH app (filled in by the server; not sent when saving). */
+  dutch?: string | null;
+  dutchSource?: 'learned' | 'dictionary' | 'dutch' | null;
 }
 
 export interface Recipe {
@@ -126,6 +129,8 @@ export interface ShoppingItem {
   /** Ingredient references so the list can mark them as "have it". */
   refs: { entryId: number; ingredientId: number }[];
   extraId?: number;
+  /** Dutch name to type into the AH app; null when unknown. */
+  dutch: string | null;
 }
 
 export interface ShoppingGroup {

@@ -32,6 +32,10 @@ const CONVERT: Record<string, { base: string; factor: number }> = {
   l: { base: 'ml', factor: 1000 },
   dl: { base: 'ml', factor: 100 },
   cl: { base: 'ml', factor: 10 },
+  // English recipes: Dutch shops sell by the gram
+  lb: { base: 'g', factor: 453.6 },
+  lbs: { base: 'g', factor: 453.6 },
+  oz: { base: 'g', factor: 28.35 },
 };
 
 export function normalizeUnit(unit: string): string {
@@ -58,6 +62,8 @@ function toBase(q: number | null, unit: string) {
 
 function prettify(q: number | null, unit: string) {
   if (q === null) return { q, unit };
+  // Converted pounds/ounces give odd decimals; nobody buys 453.6 g.
+  if ((unit === 'g' || unit === 'ml') && q >= 10) q = Math.round(q);
   if (unit === 'g' && q >= 1000) return { q: q / 1000, unit: 'kg' };
   if (unit === 'ml' && q >= 1000) return { q: q / 1000, unit: 'l' };
   return { q, unit };
@@ -78,6 +84,7 @@ export function buildShoppingList(
   to: string,
   meals: PlannedMeal[],
   extras: ExtraLike[] = [],
+  toDutch: (name: string) => string | null = () => null,
 ): ShoppingList {
   const items = new Map<string, ShoppingItem>();
   let haveCount = 0;
@@ -89,7 +96,9 @@ export function buildShoppingList(
         continue;
       }
       const base = toBase(ing.quantity === null ? null : ing.quantity * meal.scale, normalizeUnit(ing.unit));
-      const key = `${normalizeName(ing.name)}|${base.unit}`;
+      // Merge on the Dutch name when known, so "scallions" and "bosui" become one line.
+      const dutch = toDutch(ing.name);
+      const key = `${normalizeName(dutch ?? ing.name)}|${base.unit}`;
       const usedIn = `${meal.title} (${dayLabel(meal.date)})`;
       const existing = items.get(key);
       if (existing) {
@@ -101,6 +110,7 @@ export function buildShoppingList(
         items.set(key, {
           key,
           name: ing.name,
+          dutch,
           quantity: base.q,
           unit: base.unit,
           category: ing.category,
@@ -128,6 +138,7 @@ export function buildShoppingList(
       usedIn: [],
       refs: [],
       extraId: ex.id,
+      dutch: toDutch(ex.name),
     });
   }
 
@@ -135,7 +146,7 @@ export function buildShoppingList(
     category,
     items: [...items.values()]
       .filter((i) => i.category === category)
-      .sort((a, b) => a.name.localeCompare(b.name)),
+      .sort((a, b) => (a.dutch ?? a.name).localeCompare(b.dutch ?? b.name)),
   })).filter((g) => g.items.length > 0);
 
   return { from, to, groups, haveCount };
@@ -153,7 +164,9 @@ export function shoppingListToText(list: ShoppingList, opts: { withSources?: boo
     lines.push('', g.category.toUpperCase());
     for (const it of g.items) {
       const qty = formatQuantity(it.quantity, it.unit);
-      let line = `- ${qty ? qty + ' ' : ''}${it.name}`;
+      // Dutch first (what you type in the AH app), English in brackets when different.
+      const nl = it.dutch && normalizeName(it.dutch) !== normalizeName(it.name) ? it.dutch : null;
+      let line = `- ${qty ? qty + ' ' : ''}${nl ?? it.name}${nl ? ` (${it.name})` : ''}`;
       if (opts.withSources && it.usedIn.length) line += `  (${it.usedIn.join(', ')})`;
       lines.push(line);
     }

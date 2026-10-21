@@ -446,6 +446,21 @@ input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: 2px sol
   display: flex; justify-content: space-between;
 }
 .shop-item { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 9px 14px; border-top: 1px solid var(--border); }
+.shop-item .nl-name { font-weight: 600; }
+.shop-item .en-name { font-style: italic; }
+.shop-item-actions { display: flex; align-items: center; gap: 4px; }
+.dutch-add {
+  margin-left: 8px; border: 1px dashed var(--border); background: transparent; color: var(--accent);
+  border-radius: 999px; padding: 1px 8px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+}
+.dutch-form { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.dutch-form input { flex: 1; min-width: 140px; min-height: 32px; padding: 4px 8px; }
+.ah-link {
+  display: inline-grid; place-items: center; min-width: 34px; height: 26px; padding: 0 6px; border-radius: 7px;
+  background: #00a0e2; color: #fff; font-weight: 800; font-size: 0.72rem; text-decoration: none; letter-spacing: 0.02em;
+}
+.nl-hint { font-size: 0.75rem; color: var(--muted); }
+.nl-hint button { border: 0; background: none; padding: 0 2px; color: var(--accent); cursor: pointer; font: inherit; font-weight: 600; }
 .shop-item input { width: 20px; height: 20px; accent-color: var(--good); }
 .shop-item .q { font-weight: 700; }
 .shop-item .src { font-size: 0.78rem; color: var(--muted); }
@@ -486,3 +501,8 @@ ol.howto { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
 /* no grey tap flash on draggable cards (it looks like a failed tap) */
 .meal, .book-item { -webkit-tap-highlight-color: transparent; }
+.ing-hint { margin: -3px 0 8px 172px; }
+.ing-hint .unknown { font-style: italic; }
+@media (max-width: 720px) { .ing-hint { margin-left: 132px; } }
+.dutch-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.dutch-list li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); }

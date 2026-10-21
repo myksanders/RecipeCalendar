@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { guessCategory } from '../../../shared/categorize';
 import { addDays, startOfWeek, today as todayFn } from '../../../shared/dates';
+import { differsFromName, guessCategoryWithDutch } from '../../../shared/dutch';
 import { formatQuantity } from '../../../shared/ingredients';
 import { shoppingListToText } from '../../../shared/shopping';
 import { CATEGORIES, type Category, type ShoppingItem, type ShoppingList } from '../../../shared/types';
 import { api, cachedSettings } from '../api';
+import { AhSearchLink, DutchNameForm } from '../components/DutchName';
 import { fmtRange, useToast } from '../ui';
 
 const SHORTCUT_KEY = 'shopping.shortcutName';
@@ -27,6 +28,7 @@ export function ShoppingPage() {
     }
   });
   const toast = useToast();
+  const [editingDutch, setEditingDutch] = useState<string | null>(null); // item key
 
   const load = useCallback(() => {
     api.shoppingList(range.from, range.to).then(setList).catch((e) => toast({ text: e.message, tone: 'warn' }));
@@ -152,7 +154,7 @@ export function ShoppingPage() {
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
         />
-        <select value={newCat || (newItem ? guessCategory(newItem) : '')} onChange={(e) => setNewCat(e.target.value as Category)} aria-label="Category">
+        <select value={newCat || (newItem ? guessCategoryWithDutch(newItem) : '')} onChange={(e) => setNewCat(e.target.value as Category)} aria-label="Category">
           <option value="" disabled>
             Category
           </option>
@@ -180,25 +182,70 @@ export function ShoppingPage() {
               <label key={it.key} className="shop-item">
                 <input type="checkbox" checked={false} onChange={() => tick(it)} aria-label={`Have ${it.name}`} />
                 <div>
-                  <div>
-                    {(it.quantity !== null || it.unit) && <span className="q">{formatQuantity(it.quantity, it.unit)} </span>}
-                    {it.name}
-                  </div>
-                  {it.usedIn.length > 0 && <div className="src">{it.usedIn.join(' · ')}</div>}
+                  {editingDutch === it.key ? (
+                    <DutchNameForm
+                      name={it.name}
+                      current={it.dutch}
+                      onSaved={() => {
+                        setEditingDutch(null);
+                        load();
+                      }}
+                      onCancel={() => setEditingDutch(null)}
+                    />
+                  ) : (
+                    <div>
+                      {(it.quantity !== null || it.unit) && <span className="q">{formatQuantity(it.quantity, it.unit)} </span>}
+                      <span className="nl-name">{it.dutch ?? it.name}</span>
+                      {!it.dutch && (
+                        <button
+                          className="dutch-add"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setEditingDutch(it.key);
+                          }}
+                        >
+                          + Dutch name
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {(differsFromName(it.name, it.dutch) || it.usedIn.length > 0) && (
+                    <div className="src">
+                      {differsFromName(it.name, it.dutch) && <span className="en-name">{it.name}</span>}
+                      {differsFromName(it.name, it.dutch) && it.usedIn.length > 0 && ' · '}
+                      {it.usedIn.join(' · ')}
+                    </div>
+                  )}
                 </div>
-                {it.extraId && (
-                  <button
-                    className="btn ghost icon small"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      await api.deleteExtra(it.extraId!);
-                      load();
-                    }}
-                    aria-label={`Remove ${it.name}`}
-                  >
-                    ✕
-                  </button>
-                )}
+                <div className="shop-item-actions">
+                  {it.dutch && editingDutch !== it.key && (
+                    <button
+                      className="btn ghost icon small"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setEditingDutch(it.key);
+                      }}
+                      aria-label={`Edit Dutch name for ${it.name}`}
+                      title="Fix the Dutch name"
+                    >
+                      ✏️
+                    </button>
+                  )}
+                  <AhSearchLink query={it.dutch ?? it.name} />
+                  {it.extraId && (
+                    <button
+                      className="btn ghost icon small"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        await api.deleteExtra(it.extraId!);
+                        load();
+                      }}
+                      aria-label={`Remove ${it.name}`}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </label>
             ))}
           </div>

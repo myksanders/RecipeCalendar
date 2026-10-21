@@ -47,5 +47,7 @@ Dates are local `YYYY-MM-DD` strings.
 |---|---|---|
 | GET/PUT | `/api/settings` | `{ varietyWeeks, weekStart (0 = Sunday, 1 = Monday), mealSlots (dinner always included), people[] }` |
 | GET | `/api/categorize?name=` | `{ category }` |
+| GET | `/api/dutch-names` | names the household taught: `[{ key, name, nl }]` |
+| PUT | `/api/dutch-names` | `{ name, nl }` teaches a Dutch (AH) name for an ingredient; empty `nl` forgets it |
 | GET | `/calendar.ics` | iCal feed, 4 weeks back to ~4 months ahead |
 | GET | `/photos/:file` | recipe photos |

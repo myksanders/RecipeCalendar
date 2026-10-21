@@ -1,3 +1,4 @@
+import { guessCategoryWithDutch } from '../../shared/dutch';
 import { parseIngredientLine } from '../../shared/ingredients';
 import type { RecipeInput } from '../../shared/types';
 
@@ -162,7 +163,7 @@ function mapRecipe(node: any, pageUrl: string): ImportedRecipe {
     sourceUrl: pageUrl,
     tags: toTags(node.recipeCategory, node.recipeCuisine),
     notes: '',
-    ingredients: ingredientLines.map(parseIngredientLine),
+    ingredients: ingredientLines.map(parseIngredientLine).map((i) => ({ ...i, category: guessCategoryWithDutch(i.name) })),
     steps: flattenInstructions(node.recipeInstructions),
     imageUrl: pickImage(node.image, pageUrl),
   };

@@ -29,6 +29,7 @@ function CopyField({ value }: { value: string }) {
 export function SettingsPage() {
   const [s, setS] = useState<Settings | null>(null);
   const [people, setPeople] = useState('');
+  const [dutchNames, setDutchNames] = useState<{ key: string; name: string; nl: string }[]>([]);
   const toast = useToast();
   const theme = useTheme();
   const origin = window.location.origin;
@@ -39,7 +40,14 @@ export function SettingsPage() {
       setS(x);
       setPeople(x.people.join(', '));
     });
+    api.dutchNames().then(setDutchNames).catch(() => {});
   }, []);
+
+  async function forgetDutch(d: { key: string; name: string }) {
+    await api.setDutchName(d.name, '');
+    setDutchNames((list) => list.filter((x) => x.key !== d.key));
+    toast({ text: `Forgot the Dutch name for “${d.name}”` });
+  }
 
   async function save(patch: Partial<Settings>) {
     try {
@@ -108,6 +116,32 @@ export function SettingsPage() {
           <p className="muted small" style={{ margin: 0 }}>
             Turn on breakfast or lunch to plan them too. Meals already on the calendar always stay visible.
           </p>
+        </section>
+
+        <section className="card">
+          <h2>🇳🇱 Dutch names you’ve taught</h2>
+          <p className="muted small" style={{ margin: 0 }}>
+            Most ingredients get a Dutch name automatically. When one is missing or wrong, fix it on the shopping list or
+            in a recipe — it’s remembered here and used in every recipe.
+          </p>
+          {dutchNames.length === 0 ? (
+            <p className="small muted" style={{ margin: 0 }}>
+              None yet.
+            </p>
+          ) : (
+            <ul className="dutch-list">
+              {dutchNames.map((d) => (
+                <li key={d.key}>
+                  <span>
+                    {d.name} → <b>{d.nl}</b>
+                  </span>
+                  <button className="btn ghost small" onClick={() => forgetDutch(d)} aria-label={`Forget ${d.name}`}>
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="card">

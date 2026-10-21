@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { addDays } from '../../../shared/dates';
+import { differsFromName } from '../../../shared/dutch';
 import { formatIngredient } from '../../../shared/ingredients';
 import type { EntryDetail, Slot } from '../../../shared/types';
 import { leftoverSlot, visibleSlots } from '../../../shared/types';
@@ -214,6 +215,7 @@ export function MealDetail({
                   <span>
                     <span className="name">{formatIngredient(i, d.scale)}</span>
                     {i.note && <span className="muted small">, {i.note}</span>}
+                    {differsFromName(i.name, i.dutch) && <span className="nl-hint"> · 🇳🇱 {i.dutch}</span>}
                     <div className="cat">{i.category}</div>
                   </span>
                 </label>
