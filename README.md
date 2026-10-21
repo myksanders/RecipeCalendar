@@ -38,9 +38,14 @@ npm run build
 npm start          # http://localhost:3000, and on your Wi-Fi at http://<pc-ip>:3000
 ```
 
-On Windows you can just double-click `start-meal-planner.cmd`. For running it
-in the background at login, the firewall rule, and backups, see
-[docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md).
+It runs on macOS, Windows and Linux. To host it on a home computer:
+
+- **Mac** (an idle MacBook is ideal): double-click `start-meal-planner.command`,
+  or run `scripts/macos/install-launchd.sh` to keep it running in the background.
+  Phones reach it at `http://<mac-name>.local:3000`. Lid-closed setup, auto-start
+  and backups: [docs/MAC_SETUP.md](docs/MAC_SETUP.md).
+- **Windows**: double-click `start-meal-planner.cmd`. Background running, firewall
+  and backups: [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md).
 
 Settings via environment variables: `PORT` (3000), `HOST` (0.0.0.0), `DATA_DIR`
 (`./data`), `SEED=0` to skip the five sample recipes on first run.
