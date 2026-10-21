@@ -3,6 +3,7 @@ import { RecipeEditor } from './pages/RecipeEditor';
 import { RecipesPage } from './pages/RecipesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ShoppingPage } from './pages/ShoppingPage';
+import { useTheme } from './theme';
 import { useRoute } from './ui';
 
 const TABS = [
@@ -14,6 +15,7 @@ const TABS = [
 
 export function App() {
   const { path, params } = useRoute();
+  const theme = useTheme();
   const section = '#/' + (path.split('/')[1] ?? '');
 
   let page;
@@ -38,6 +40,14 @@ export function App() {
             </a>
           ))}
         </nav>
+        <button
+          className="btn ghost icon theme-btn"
+          onClick={() => theme.setPref(theme.isDark ? 'light' : 'dark')}
+          aria-label={theme.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme.isDark ? 'Light mode' : 'Dark mode'}
+        >
+          {theme.isDark ? '☀️' : '🌙'}
+        </button>
       </header>
       <main>{page}</main>
       <nav className="tabbar">

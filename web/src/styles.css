@@ -27,8 +27,9 @@
   color-scheme: light;
 }
 
+/* Dark theme: follows the device unless the viewer picked Light or Dark (html[data-theme]). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #1a1411;
     --surface: #241c17;
     --surface-2: #2e241e;
@@ -55,6 +56,33 @@
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.3);
     color-scheme: dark;
   }
+}
+:root[data-theme='dark'] {
+  --bg: #1a1411;
+  --surface: #241c17;
+  --surface-2: #2e241e;
+  --border: #3d3029;
+  --text: #f6ece4;
+  --muted: #b3a294;
+  --accent: #fb923c;
+  --accent-ink: #1a1411;
+  --accent-soft: #43281a;
+  --good: #4ade80;
+  --good-soft: #173323;
+  --warn: #fbbf24;
+  --warn-soft: #3b2f12;
+  --danger: #f87171;
+  --today: #5b4313;
+  --kind-leftovers: #0c2f45;
+  --kind-leftovers-ink: #bae6fd;
+  --kind-dining: #35204a;
+  --kind-dining-ink: #e9d5ff;
+  --kind-fend: #3a3410;
+  --kind-fend-ink: #fef08a;
+  --kind-note: #283039;
+  --kind-note-ink: #cbd5e1;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -87,6 +115,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.05rem; text-decoration: none; color: var(--text); }
 .brand img { width: 28px; height: 28px; border-radius: 8px; }
 .nav { display: flex; gap: 4px; margin-left: auto; }
+.theme-btn { font-size: 1.1rem; }
 .nav a {
   padding: 7px 12px; border-radius: 999px; text-decoration: none; color: var(--muted); font-weight: 600; font-size: 0.92rem;
 }
@@ -96,6 +125,7 @@ main { flex: 1; width: 100%; }
 
 @media (max-width: 720px) {
   .topbar .nav { display: none; }
+  .theme-btn { margin-left: auto; }
   .tabbar {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
     display: grid; grid-template-columns: repeat(4, 1fr);
@@ -159,6 +189,13 @@ input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: 2px sol
   width: 100%; height: 100%; display: grid; place-items: center; font-size: 2rem;
   background: linear-gradient(135deg, var(--ph-a, #fed7aa), var(--ph-b, #fca5a5));
 }
+/* Softer pictures at night: dim photos a little and placeholder art more. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .photo img { filter: brightness(0.85); }
+  :root:not([data-theme='light']) .photo .ph { filter: brightness(0.55) saturate(0.8); }
+}
+:root[data-theme='dark'] .photo img { filter: brightness(0.85); }
+:root[data-theme='dark'] .photo .ph { filter: brightness(0.55) saturate(0.8); }
 
 /* ---------- calendar ---------- */
 .cal-layout { display: grid; grid-template-columns: 290px 1fr; min-height: calc(100dvh - 58px); }

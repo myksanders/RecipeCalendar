@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Settings } from '../../../shared/types';
 import { api } from '../api';
+import { useTheme, type ThemePref } from '../theme';
 import { useToast } from '../ui';
 
 function CopyField({ value }: { value: string }) {
@@ -29,6 +30,7 @@ export function SettingsPage() {
   const [s, setS] = useState<Settings | null>(null);
   const [people, setPeople] = useState('');
   const toast = useToast();
+  const theme = useTheme();
   const origin = window.location.origin;
   const host = window.location.host;
 
@@ -104,6 +106,23 @@ export function SettingsPage() {
           </div>
           <p className="muted small" style={{ margin: 0 }}>
             Used by the week and month views and the shopping list’s “This week” / “Next week”.
+          </p>
+          <div className="field">
+            Appearance on this device
+            <div className="seg" role="radiogroup" aria-label="Appearance" style={{ justifySelf: 'start' }}>
+              {([
+                ['light', '☀️ Light'],
+                ['dark', '🌙 Dark'],
+                ['auto', 'Match device'],
+              ] as [ThemePref, string][]).map(([v, label]) => (
+                <button key={v} role="radio" aria-checked={theme.pref === v} className={theme.pref === v ? 'on' : ''} onClick={() => theme.setPref(v)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="muted small" style={{ margin: 0 }}>
+            Only changes this phone or computer. The 🌙 button at the top switches quickly.
           </p>
         </section>
 
