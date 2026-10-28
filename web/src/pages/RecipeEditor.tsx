@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { differsFromName, dutchKey, guessCategoryWithDutch, resolveDutch } from '../../../shared/dutch';
 import { parseIngredientLine } from '../../../shared/ingredients';
 import { CATEGORIES, type Category, type Ingredient, type RecipeInput } from '../../../shared/types';
-import { api, resizeImage } from '../api';
+import { api, resizeImage, type ImportedRecipe } from '../api';
 import { DutchNameForm } from '../components/DutchName';
 import { navigate, Photo, useToast } from '../ui';
 
@@ -49,6 +49,7 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
   const [remoteImage, setRemoteImage] = useState<string | null>(null);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState<ImportedRecipe | null>(null);
   const [bulk, setBulk] = useState('');
   const [showBulk, setShowBulk] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -99,6 +100,7 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
     setSourceUrl(r.sourceUrl ?? '');
     setRows(r.ingredients.length ? r.ingredients.map(toRow) : [blankRow()]);
     setSteps(r.steps.length ? r.steps : ['']);
+    if (r.notes) setNotes(r.notes);
     if (r.imageUrl && !photo && !pendingPhoto) setRemoteImage(r.imageUrl);
   }
 
@@ -106,9 +108,12 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
     if (!importUrl.trim()) return;
     setImporting(true);
     setError('');
+    setImportReport(null);
     try {
-      fill(await api.importRecipe(importUrl.trim()));
-      toast({ text: 'Recipe imported — check it over and save.' });
+      const r = await api.importRecipe(importUrl.trim());
+      fill(r);
+      setImportReport(r);
+      if (r.source === 'title-only') setShowBulk(true); // paste the ingredients by hand
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -256,6 +261,7 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
                 {importing ? 'Importing…' : 'Import'}
               </button>
             </form>
+            {importReport && <ImportSummary r={importReport} />}
           </section>
         )}
 
@@ -439,4 +445,39 @@ function swap<T>(arr: T[], a: number, b: number): T[] {
   const out = [...arr];
   [out[a], out[b]] = [out[b], out[a]];
   return out;
+}
+
+const SOURCE_LABEL = {
+  structured: 'the page’s recipe data',
+  'recipe-card': 'the recipe card on the page',
+  'title-only': '',
+} as const;
+
+function ImportSummary({ r }: { r: ImportedRecipe }) {
+  if (r.source === 'title-only') {
+    return (
+      <p className="import-summary warn">
+        Found the title{r.imageUrl ? ' and photo' : ''}, but no ingredients or steps on that page. Paste the ingredients
+        below (one per line) and add the steps.
+      </p>
+    );
+  }
+  return (
+    <div className="import-summary">
+      <div>
+        ✓ Imported {r.ingredients.length} ingredients, {r.steps.length} steps{r.imageUrl ? ', photo' : ''} from{' '}
+        {SOURCE_LABEL[r.source]}. Check it over, then save.
+      </div>
+      {r.unclear.length > 0 && (
+        <div className="warn">
+          Couldn’t fully read {r.unclear.length === 1 ? 'this line' : 'these lines'} — check the amount and name:
+          <ul>
+            {r.unclear.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }

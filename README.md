@@ -13,8 +13,10 @@ ticked, grouped by Albert Heijn-style category so it's quick to enter in the AH 
   out, 🥡 fend for yourselves, 📝 notes.
 - **Recipe book** — drag a recipe onto a day (desktop/iPad), or tap it then tap a
   day (phone). Create recipes on their own page with a photo, ingredients and steps.
-- **Import from a link** — paste an Allerhande (or most other recipe site) URL and
-  the form is filled in, including the photo.
+- **Import from a link** — paste a recipe URL (Allerhande, food blogs using WP Recipe
+  Maker / Tasty Recipes / Mediavine, most big recipe sites) and the form is filled in,
+  including the photo, notes and ingredient groups. Pages without a recipe card still
+  give you the title and photo; paste the ingredients yourself.
 - **Ingredient checklist** — always visible next to the steps in a meal. Ticked =
   in the fridge/pantry; unticked goes on the shopping list. Servings scale amounts.
 - **Shopping list** — for any date range; merges duplicates (500 g + 1 kg gehakt =

@@ -33,6 +33,61 @@ describe('importer', () => {
   });
 });
 
+describe('importer on other sites', () => {
+  const load = (f: string) =>
+    extractRecipeFromHtml(readFileSync(join(__dirname, `fixtures/${f}.html`), 'utf8'), 'https://example.com/recipe/')!;
+
+  it('uses JSON-LD and borrows ingredient groups and notes from a WP Recipe Maker card', () => {
+    const r = load('wprm-with-jsonld');
+    expect(r.source).toBe('structured');
+    expect(r.unclear).toEqual([]);
+    expect(r.ingredients).toHaveLength(7);
+    expect(r.ingredients[0]).toMatchObject({ quantity: 1.5, unit: 'lb', name: 'boneless skinless chicken thighs', note: 'cut into bite-size pieces, chicken & noodles' });
+    expect(r.ingredients[3]).toMatchObject({ quantity: 0.25, unit: 'cup', name: 'honey', note: 'sauce' });
+    expect(r.notes).toBe('Leftovers keep 4 days in the fridge.');
+    expect(r.imageUrl).toBe('https://example.com/a.jpg');
+  });
+
+  it('reads a Tasty Recipes card when there is no structured data', () => {
+    const r = load('tasty-card-only');
+    expect(r.source).toBe('recipe-card');
+    expect(r.title).toBe('Sesame Ground Chicken');
+    expect(r.servings).toBe(4);
+    expect(r.imageUrl).toBe('https://example.com/img/sesame-card.jpg');
+    expect(r.steps).toEqual(['Brown the chicken in sesame oil.', 'Stir in the sauce.', 'Serve over rice.']);
+    expect(r.ingredients.map((i) => [i.quantity, i.unit, i.name, i.note])).toEqual([
+      [1, 'lb', 'ground chicken', 'for the chicken'],
+      [1, 'tablespoon', 'sesame oil', 'divided, for the chicken'],
+      [null, '', 'Salt and pepper', 'to taste, for the chicken'],
+      [1 / 3, 'cup', 'soy sauce', 'for the sauce'],
+      [2, 'tablespoons', 'rice vinegar', 'for the sauce'],
+      [1, 'can', 'coconut milk', '14 oz, for the sauce'],
+      [null, '', 'sesame seeds', 'optional, for the sauce'],
+    ]);
+    expect(r.notes).toBe('Use ground turkey if you prefer.');
+  });
+
+  it('reads schema.org microdata', () => {
+    const r = load('microdata');
+    expect(r.source).toBe('structured');
+    expect(r.title).toBe('Pancakes');
+    expect(r.servings).toBe(8);
+    expect(r.ingredients.map((i) => i.name)).toEqual(['flour', 'eggs', 'milk']);
+    expect(r.steps).toEqual(['Whisk everything.', 'Fry in butter.']);
+  });
+
+  it('falls back to the title and photo when the page has no recipe', () => {
+    const r = load('no-recipe');
+    expect(r).toMatchObject({ source: 'title-only', title: "My Grandma's Stew", imageUrl: 'https://cdn.example.com/stew.jpg', ingredients: [], steps: [] });
+    expect(r.description).toBe('A cozy stew for cold nights.');
+  });
+
+  it('flags lines it could not read', () => {
+    const html = `<script type="application/ld+json">{"@type":"Recipe","name":"X","recipeIngredient":["2 cups flour","3-4 x 200g packs of tofu"]}</script>`;
+    expect(extractRecipeFromHtml(html, 'https://x/')!.unclear).toEqual(['3-4 x 200g packs of tofu']);
+  });
+});
+
 describe('ical', () => {
   it('builds a valid-looking feed with escaping and folding', () => {
     const ics = buildIcs(

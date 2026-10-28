@@ -148,6 +148,8 @@ describe('Dutch names', () => {
     ['coconut milk', 'kokosmelk'],
     ['peanut butter', 'pindakaas'],
     ['gochujang', 'gochujang'],
+    ['Salt and pepper', 'zout en peper'],
+    ['salt & pepper', 'zout en peper'],
   ])('%s -> %s', (en, nl) => expect(resolveDutch(en)).toEqual({ nl, source: 'dictionary' }));
 
   it('recognises names that are already Dutch', () => {
@@ -201,4 +203,24 @@ describe('ingredient fractions', () => {
     ['1 1/2 cups rice', 1.5, 'cups', 'rice'],
     ['1 lb lean ground beef', 1, 'lb', 'lean ground beef'],
   ])('%s', (line, q, unit, name) => expect(parseIngredientLine(line)).toMatchObject({ quantity: q, unit, name }));
+});
+
+describe('cleaning up blog-style ingredient lines', () => {
+  it.each([
+    ['1 (14 oz) can coconut milk', 1, 'can', 'coconut milk', '14 oz'],
+    ['2 cups (480 ml) chicken broth', 2, 'cups', 'chicken broth', '480 ml'],
+    ['Salt and pepper, to taste', null, '', 'Salt and pepper', 'to taste'],
+    ['salt and pepper to taste', null, '', 'salt and pepper', 'to taste'],
+    ['Optional: sesame seeds', null, '', 'sesame seeds', 'optional'],
+    ['1/2-3/4 cup water', 0.75, 'cup', 'water', undefined],
+    ['2 to 3 tbsp honey', 3, 'tbsp', 'honey', undefined],
+    ['<strong>3</strong> cloves garlic, minced', 3, 'cloves', 'garlic', 'minced'],
+    ['▢ 2 tbsp soy sauce', 2, 'tbsp', 'soy sauce', undefined],
+    ['1 1/2 lbs chicken thighs (boneless)', 1.5, 'lbs', 'chicken thighs', 'boneless'],
+    ['1 tomato', 1, '', 'tomato', undefined],
+  ])('%s', (line, quantity, unit, name, note) => {
+    const i = parseIngredientLine(line);
+    expect(i).toMatchObject({ quantity, unit, name });
+    expect(i.note).toBe(note);
+  });
 });

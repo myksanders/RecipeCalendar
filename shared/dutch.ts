@@ -83,6 +83,7 @@ const DICTIONARY: Record<string, string> = {
   sugar: 'suiker', 'white sugar': 'kristalsuiker', 'granulated sugar': 'kristalsuiker', 'brown sugar': 'bruine basterdsuiker',
   'light brown sugar': 'lichtbruine basterdsuiker', 'powdered sugar': 'poedersuiker', 'icing sugar': 'poedersuiker',
   honey: 'honing', 'maple syrup': 'ahornsiroop', salt: 'zout', 'sea salt': 'zeezout', pepper: 'zwarte peper',
+  'salt and pepper': 'zout en peper', 'salt pepper': 'zout en peper',
   'black pepper': 'zwarte peper', 'ground black pepper': 'zwarte peper', 'white pepper': 'witte peper',
   'olive oil': 'olijfolie', 'extra virgin olive oil': 'olijfolie extra vierge', 'vegetable oil': 'zonnebloemolie',
   'sunflower oil': 'zonnebloemolie', 'canola oil': 'raapzaadolie', 'neutral oil': 'zonnebloemolie', 'cooking oil': 'zonnebloemolie',

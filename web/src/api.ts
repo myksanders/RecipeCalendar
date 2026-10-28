@@ -33,7 +33,11 @@ async function req<T>(method: string, url: string, body?: unknown, headers: Reco
   return res.json();
 }
 
-export type ImportedRecipe = RecipeInput & { imageUrl: string | null };
+export type ImportedRecipe = RecipeInput & {
+  imageUrl: string | null;
+  source: 'structured' | 'recipe-card' | 'title-only';
+  unclear: string[];
+};
 
 export const api = {
   recipes: () => req<RecipeSummary[]>('GET', '/api/recipes'),
