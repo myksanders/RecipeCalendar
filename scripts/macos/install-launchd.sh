@@ -3,10 +3,11 @@
 # Usage: ./scripts/macos/install-launchd.sh   (run again after updating to rebuild and restart)
 set -euo pipefail
 
-LABEL="nl.mealplan.server"
 APP_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 PORT="${PORT:-3000}"
+# shellcheck source=launchd-lib.sh
+source "$APP_DIR/scripts/macos/launchd-lib.sh"
+refuse_root
 
 NPM="$(command -v npm || true)"
 NODE="$(command -v node || true)"
@@ -79,11 +80,46 @@ if [ "${MEALPLAN_SKIP_LAUNCHCTL:-}" = "1" ]; then
   exit 0
 fi
 
-launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
-launchctl bootstrap "gui/$(id -u)" "$PLIST"
+health() { curl -s -m 2 -o /dev/null -w '%{http_code}' "http://localhost:$PORT/api/health" 2>/dev/null || true; }
+
+echo "Starting the background service..."
+unload_service
+if [ "$(health)" = "200" ]; then
+  echo "Something else is already answering on port $PORT — probably start-meal-planner.command" >&2
+  echo "in an open Terminal window. Close that window (or press Ctrl+C in it) and run this again." >&2
+  exit 1
+fi
+
+if ! load_service; then
+  cat >&2 <<MSG
+
+Couldn't register the meal planner with macOS (launchd).
+This usually means the script ran over SSH, from a remote terminal, or with sudo.
+Open Terminal on the Mac itself, logged in as you, and run:
+
+  $APP_DIR/scripts/macos/install-launchd.sh
+
+or load it by hand with:
+
+  launchctl load -w "$PLIST"
+MSG
+  exit 1
+fi
+
+for _ in $(seq 1 30); do
+  [ "$(health)" = "200" ] && break
+  sleep 0.5
+done
+if [ "$(health)" != "200" ]; then
+  echo >&2
+  echo "The service was registered (via $LOADED_VIA) but the app isn't answering on port $PORT yet." >&2
+  echo "Last lines of $APP_DIR/data/server.log:" >&2
+  tail -n 15 "$APP_DIR/data/server.log" >&2 2>/dev/null || echo "  (no log yet)" >&2
+  exit 1
+fi
 
 echo
-echo "Meal planner is running in the background and will start at every login."
+echo "Meal planner is running in the background (via $LOADED_VIA) and will start at every login."
 echo "  On this Mac:    http://localhost:$PORT"
 echo "  On your phones: http://$(scutil --get LocalHostName 2>/dev/null || hostname -s).local:$PORT"
 echo "  Log file:       $APP_DIR/data/server.log"

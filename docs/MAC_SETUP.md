@@ -89,6 +89,14 @@ covers it if you use it; otherwise copy that folder somewhere now and then.
 
 ## Troubleshooting
 
+- **"Bootstrap failed: 125: Domain does not support specified action"**: the install
+  script was run over SSH, from a remote terminal, or with `sudo`, so it couldn't reach
+  your desktop session. The script now tries other ways automatically. If it still
+  can't, open Terminal on the Mac itself (logged in as you, no `sudo`) and run it again,
+  or load it by hand: `launchctl load -w ~/Library/LaunchAgents/nl.mealplan.server.plist`.
+- **"Something else is already answering on port 3000"**: `start-meal-planner.command`
+  is still open in a Terminal window. Close it, then run the install script again.
+
 - **Phone can't connect**: same Wi-Fi? Check System Settings → Network → Firewall:
   node must be allowed. Try the Mac's IP address (System Settings → Wi-Fi → Details).
 - **Stopped after closing the lid**: check `pmset -g | grep -i sleep` shows
