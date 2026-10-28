@@ -96,7 +96,6 @@ covers it if you use it; otherwise copy that folder somewhere now and then.
   or load it by hand: `launchctl load -w ~/Library/LaunchAgents/nl.mealplan.server.plist`.
 - **"Something else is already answering on port 3000"**: `start-meal-planner.command`
   is still open in a Terminal window. Close it, then run the install script again.
-
 - **Phone can't connect**: same Wi-Fi? Check System Settings → Network → Firewall:
   node must be allowed. Try the Mac's IP address (System Settings → Wi-Fi → Details).
 - **Stopped after closing the lid**: check `pmset -g | grep -i sleep` shows
