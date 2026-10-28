@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "concurrently -n server,web -c blue,green \"tsx watch --disable-warning=ExperimentalWarning server/index.ts\" \"vite\"",
-    "build": "vite build",
+    "build": "node scripts/build.mjs",
     "start": "tsx --disable-warning=ExperimentalWarning server/index.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
