@@ -70,6 +70,10 @@ Open Safari → `http://<your-mac>.local:3000` → Share → **Add to Home Scree
 app's **Settings** page has the Apple Calendar subscription and the Apple Notes
 Shortcut steps, with the right addresses filled in.
 
+To add recipes from sites that block the app (Albert Heijn sometimes does), use the
+**Add to Meal Plan** bookmark on the Mac or the Share-sheet Shortcut on the iPhone.
+The app's **Settings → Add recipes from your browser** has the steps.
+
 To see meals in Calendar on a Mac: **Calendar → File → New Calendar Subscription…**
 and paste `http://<your-mac>.local:3000/calendar.ics`. Use the `http://` address:
 `webcal://` links may be opened over HTTPS, which this home server doesn't speak,

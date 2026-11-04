@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import fastifyStatic from '@fastify/static';
+import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { z } from 'zod';
 import { addDays, isValidISODate, today } from '../shared/dates';
@@ -9,7 +10,7 @@ import { shoppingListToText } from '../shared/shopping';
 import { CATEGORIES, ENTRY_KINDS, SLOTS, visibleSlots } from '../shared/types';
 import type { Repo } from './repo';
 import { buildIcs } from './services/ical';
-import { ImportError, importRecipeFromUrl } from './services/importer';
+import { extractRecipeFromHtml, ImportError, importRecipeFromUrl, type ImportedRecipe } from './services/importer';
 import { MAX_PHOTO_BYTES, type PhotoStore } from './services/photos';
 
 export interface AppOptions {
@@ -105,6 +106,10 @@ export function buildApp(opts: AppOptions): FastifyInstance {
   const app = Fastify({ logger: opts.logger ?? false, bodyLimit: MAX_PHOTO_BYTES });
 
   app.addContentTypeParser(/^image\//, { parseAs: 'buffer' }, (_req, body, done) => done(null, body));
+  // The iOS Shortcut sends the page as a JSON string in a plain "file" body.
+  app.addContentTypeParser(['application/octet-stream', 'text/html'], { parseAs: 'string' }, (_req, body, done) =>
+    done(null, body),
+  );
 
   app.setErrorHandler((err: any, _req, reply) => {
     const status = err instanceof HttpError ? err.statusCode : err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
@@ -188,6 +193,46 @@ export function buildApp(opts: AppOptions): FastifyInstance {
       if (e instanceof ImportError) throw new HttpError(422, e.message);
       throw new HttpError(502, `Could not load that page (${e?.message ?? 'network error'}).`);
     }
+  });
+
+  // Pages sent by the browser ("Add to Meal Plan" bookmark or iOS Shortcut), parsed
+  // here and kept briefly so the editor can open them. In memory only: a restart
+  // just means trying again.
+  const drafts = new Map<string, { at: number; recipe: ImportedRecipe }>();
+  const DRAFT_TTL = 30 * 60 * 1000;
+  const pageSchema = z.object({ url: z.string().trim().min(1).max(4000), html: z.string().min(1).max(8 * 1024 * 1024) });
+
+  app.post('/api/recipes/import-html', async (req, reply) => {
+    let body: unknown = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        throw new HttpError(400, 'Expected JSON with "url" and "html"');
+      }
+    }
+    const { url, html } = parse(pageSchema, body);
+    let pageUrl: string;
+    try {
+      pageUrl = new URL(url).href;
+    } catch {
+      throw new HttpError(400, 'url: not a valid link');
+    }
+    const recipe = extractRecipeFromHtml(html, pageUrl);
+    if (!recipe) throw new HttpError(422, 'No recipe found on that page.');
+    const now = Date.now();
+    for (const [k, d] of drafts) if (now - d.at > DRAFT_TTL) drafts.delete(k);
+    while (drafts.size >= 20) drafts.delete(drafts.keys().next().value!);
+    const id = randomBytes(8).toString('hex');
+    drafts.set(id, { at: now, recipe });
+    reply.status(201);
+    return { id, title: recipe.title, source: recipe.source };
+  });
+
+  app.get('/api/import-drafts/:draft', async (req) => {
+    const d = drafts.get(String((req.params as any).draft));
+    if (!d || Date.now() - d.at > DRAFT_TTL) throw new HttpError(404, 'This import has expired. Try Add to Meal Plan again.');
+    return d.recipe;
   });
 
   /** Download a remote image (from an import) as this recipe's photo. */

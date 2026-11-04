@@ -39,6 +39,12 @@ export async function importRecipeFromUrl(url: string, fetchImpl: typeof fetch =
     redirect: 'follow',
     signal: AbortSignal.timeout(15000),
   });
+  if (res.status === 401 || res.status === 403 || res.status === 429) {
+    throw new ImportError(
+      `The site refused the request (HTTP ${res.status}); some sites block automatic imports. ` +
+        'Use “Add to Meal Plan” from your browser instead (see Settings).',
+    );
+  }
   if (!res.ok) throw new ImportError(`The site answered with HTTP ${res.status}.`);
   const html = await res.text();
   const recipe = extractRecipeFromHtml(html, parsed.href);

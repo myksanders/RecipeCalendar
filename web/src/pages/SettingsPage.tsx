@@ -1,8 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Settings, Slot } from '../../../shared/types';
 import { api } from '../api';
+import { bookmarkletSource, SHORTCUT_JS } from '../bookmarklet';
 import { useTheme, type ThemePref } from '../theme';
 import { SLOT_LABEL, useToast } from '../ui';
+
+/** A draggable bookmark link. React refuses javascript: hrefs, so it's set directly. */
+function BookmarkLink({ origin }: { origin: string }) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    ref.current?.setAttribute('href', bookmarkletSource(origin));
+  }, [origin]);
+  return (
+    <a ref={ref} className="btn primary bookmarklet" onClick={(e) => e.preventDefault()} title="Drag me to your bookmarks bar">
+      ➕ Add to Meal Plan
+    </a>
+  );
+}
 
 function CopyField({ value }: { value: string }) {
   const toast = useToast();
@@ -226,6 +240,56 @@ export function SettingsPage() {
               Or try <a href={`webcal://${host}/calendar.ics`}>one-tap subscribe</a>. If Calendar says the server responded
               with an error, use the address above instead.
             </li>
+          </ol>
+        </section>
+
+        <section className="card">
+          <h2>➕ Add recipes from your browser</h2>
+          <p className="small" style={{ margin: 0 }}>
+            Some sites (Albert Heijn among them) block the app from fetching their pages. These send the recipe page you
+            already have open instead, so that never gets in the way.
+          </p>
+          <h3>On the Mac (Safari or Chrome)</h3>
+          <ol className="howto small">
+            <li>Show the bookmarks bar (Safari: View → Show Favorites Bar).</li>
+            <li>
+              Drag this button onto it: <BookmarkLink origin={origin} />
+            </li>
+            <li>On a recipe page, click it. A new tab opens with the recipe ready to check and save.</li>
+          </ol>
+          <h3>On iPhone or iPad (Safari Share button)</h3>
+          {/^(localhost|127\.|\[::1\])/.test(window.location.hostname) && (
+            <p className="import-summary warn" style={{ margin: 0 }}>
+              You’re viewing this at “localhost”, which only works on the Mac itself. Open Settings on the iPhone (using
+              the Mac’s .local address) to get the right addresses for the Shortcut.
+            </p>
+          )}
+          <ol className="howto small">
+            <li>
+              Open <b>Shortcuts</b> → <b>+</b>, name it <b>Add to Meal Plan</b>. Tap ⓘ and turn on <b>Show in Share
+              Sheet</b>; set it to receive <b>Safari web pages</b>.
+            </li>
+            <li>
+              Add <b>Run JavaScript on Web Page</b> and replace its text with:
+              <CopyField value={SHORTCUT_JS} />
+            </li>
+            <li>
+              Add <b>Get Contents of URL</b> with this address, tap ▸ to show more, set Method to <b>POST</b> and Request
+              Body to <b>File</b>, and pick the JavaScript Result:
+              <CopyField value={`${origin}/api/recipes/import-html`} />
+            </li>
+            <li>
+              Add <b>Get Dictionary Value</b> for key <b>id</b> from the Contents of URL.
+            </li>
+            <li>
+              Add <b>Open URLs</b> with this address followed by the Dictionary Value:
+              <CopyField value={`${origin}/#/recipes/new?draft=`} />
+            </li>
+            <li>
+              First time only: allow scripts (<b>Settings → Apps → Shortcuts → Advanced → Allow Running Scripts</b>) and
+              allow access to devices on your local network when asked.
+            </li>
+            <li>On a recipe page in Safari, tap Share → <b>Add to Meal Plan</b>.</li>
           </ol>
         </section>
 

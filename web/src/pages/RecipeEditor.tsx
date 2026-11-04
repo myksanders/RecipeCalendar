@@ -30,7 +30,7 @@ const toRow = (i: Ingredient): IngRow => ({
 });
 const blankRow = (): IngRow => ({ key: keySeq++, qty: '', unit: '', name: '', category: 'Other', categoryTouched: false });
 
-export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: string | null }) {
+export function RecipeEditor({ id, returnTo, draft }: { id: number | null; returnTo: string | null; draft?: string | null }) {
   const toast = useToast();
   const [loading, setLoading] = useState(id !== null);
   const [title, setTitle] = useState('');
@@ -103,6 +103,20 @@ export function RecipeEditor({ id, returnTo }: { id: number | null; returnTo: st
     if (r.notes) setNotes(r.notes);
     if (r.imageUrl && !photo && !pendingPhoto) setRemoteImage(r.imageUrl);
   }
+
+  // A page sent from the browser ("Add to Meal Plan" bookmark or iOS Shortcut).
+  useEffect(() => {
+    if (!draft || id !== null) return;
+    api
+      .importDraft(draft)
+      .then((r) => {
+        fill(r);
+        setImportReport(r);
+        if (r.sourceUrl) setImportUrl(r.sourceUrl);
+        if (r.source === 'title-only') setShowBulk(true);
+      })
+      .catch((e) => setError(e.message));
+  }, [draft, id]);
 
   async function doImport() {
     if (!importUrl.trim()) return;

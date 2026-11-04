@@ -145,6 +145,43 @@ describe('API', () => {
     expect((await app.inject({ method: 'GET', url: '/api/dutch-names' })).json()).toEqual([]);
   });
 
+  it('imports a page sent from the browser and keeps it as a draft', async () => {
+    const { readFileSync } = await import('node:fs');
+    const html = readFileSync(join(__dirname, 'fixtures/tasty-card-only.html'), 'utf8');
+    let res = await app.inject({ method: 'POST', url: '/api/recipes/import-html', payload: { url: 'https://www.example.com/sesame', html } });
+    expect(res.statusCode).toBe(201);
+    const { id, title, source } = res.json();
+    expect({ title, source }).toEqual({ title: 'Sesame Ground Chicken', source: 'recipe-card' });
+    res = await app.inject({ method: 'GET', url: `/api/import-drafts/${id}` });
+    expect(res.json()).toMatchObject({ title: 'Sesame Ground Chicken', sourceUrl: 'https://www.example.com/sesame' });
+    expect(res.json().ingredients).toHaveLength(7);
+
+    // The iOS Shortcut sends the same JSON as a plain-text "file" body.
+    res = await app.inject({
+      method: 'POST', url: '/api/recipes/import-html', headers: { 'content-type': 'text/plain' },
+      payload: JSON.stringify({ url: 'https://www.example.com/sesame', html }),
+    });
+    expect(res.statusCode).toBe(201);
+    res = await app.inject({
+      method: 'POST', url: '/api/recipes/import-html', headers: { 'content-type': 'application/octet-stream' },
+      payload: Buffer.from(JSON.stringify({ url: 'https://www.example.com/sesame', html })),
+    });
+    expect(res.statusCode).toBe(201);
+
+    expect((await app.inject({ method: 'GET', url: '/api/import-drafts/nope' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'POST', url: '/api/recipes/import-html', payload: { url: 'https://x.y/', html: '' } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/api/recipes/import-html', payload: { url: 'nope', html: '<p>' } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/api/recipes/import-html', payload: { url: 'https://x.y/', html: '<p>hi</p>' } })).statusCode).toBe(422);
+  });
+
+  it('explains when a site refuses the import', async () => {
+    const blocked = (async () => new Response('denied', { status: 403 })) as typeof fetch;
+    const a = buildApp({ repo: createRepo(openDb(':memory:')), photos: createPhotoStore(mkdtempSync(join(tmpdir(), 'mp-'))), fetchImpl: blocked });
+    const res = await a.inject({ method: 'POST', url: '/api/recipes/import', payload: { url: 'https://www.ah.nl/allerhande/recept/x' } });
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error).toContain('Add to Meal Plan');
+  });
+
   it('serves an iCal feed', async () => {
     const res = await app.inject({ method: 'GET', url: '/calendar.ics' });
     expect(res.statusCode).toBe(200);

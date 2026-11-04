@@ -49,6 +49,9 @@ export const api = {
   removePhoto: (id: number) => req<Recipe>('DELETE', `/api/recipes/${id}/photo`),
   photoFromUrl: (id: number, url: string) => req<Recipe>('POST', `/api/recipes/${id}/photo-from-url`, { url }),
   importRecipe: (url: string) => req<ImportedRecipe>('POST', '/api/recipes/import', { url }),
+  importHtml: (url: string, html: string) =>
+    req<{ id: string; title: string; source: string }>('POST', '/api/recipes/import-html', { url, html }),
+  importDraft: (id: string) => req<ImportedRecipe>('GET', `/api/import-drafts/${encodeURIComponent(id)}`),
   variety: (id: number, date: string, excludeEntryId?: number) =>
     req<{ weeks: number; dates: string[] }>(
       'GET',

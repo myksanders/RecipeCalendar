@@ -1,4 +1,5 @@
 import { CalendarPage } from './pages/CalendarPage';
+import { ImportFromPage } from './pages/ImportFromPage';
 import { RecipeEditor } from './pages/RecipeEditor';
 import { RecipesPage } from './pages/RecipesPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -20,8 +21,9 @@ export function App() {
 
   let page;
   const edit = path.match(/^\/recipes\/(\d+|new)$/);
-  if (edit) page = <RecipeEditor key={path} id={edit[1] === 'new' ? null : Number(edit[1])} returnTo={params.get('return')} />;
+  if (edit) page = <RecipeEditor key={path + (params.get('draft') ?? '')} id={edit[1] === 'new' ? null : Number(edit[1])} returnTo={params.get('return')} draft={params.get('draft')} />;
   else if (path.startsWith('/recipes')) page = <RecipesPage />;
+  else if (path.startsWith('/import-page')) page = <ImportFromPage />;
   else if (path.startsWith('/shopping')) page = <ShoppingPage />;
   else if (path.startsWith('/settings')) page = <SettingsPage />;
   else page = <CalendarPage openEntryId={params.get('entry') ? Number(params.get('entry')) : null} />;
