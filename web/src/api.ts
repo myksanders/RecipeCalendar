@@ -64,6 +64,10 @@ export const api = {
   updateEntry: (id: number, patch: Partial<EntryInput> & { sortOrder?: number }) =>
     req<MealEntry>('PATCH', `/api/entries/${id}`, patch),
   deleteEntry: (id: number) => req<void>('DELETE', `/api/entries/${id}`),
+  convertNote: (id: number, recipeId: number) =>
+    req<{ entry: MealEntry; previous: { title: string; notes: string } }>('POST', `/api/entries/${id}/convert`, { recipeId }),
+  revertToNote: (id: number, previous: { title: string; notes: string }) =>
+    req<MealEntry>('POST', `/api/entries/${id}/revert-to-note`, previous),
   setCheck: (entryId: number, ingredientId: number, have: boolean) =>
     req<void>('PUT', `/api/entries/${entryId}/checks/${ingredientId}`, { have }),
 

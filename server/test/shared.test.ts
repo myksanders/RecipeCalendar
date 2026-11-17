@@ -5,6 +5,7 @@ import { buildShoppingList, shoppingLabel, shoppingListToText } from '../../shar
 import { addDays, startOfWeek } from '../../shared/dates';
 import { leftoverSlot, visibleSlots } from '../../shared/types';
 import { differsFromName, dutchKey, guessCategoryWithDutch, resolveDutch } from '../../shared/dutch';
+import { rankRecipesForText } from '../../shared/match';
 
 describe('guessCategory', () => {
   it.each([
@@ -222,5 +223,19 @@ describe('cleaning up blog-style ingredient lines', () => {
     const i = parseIngredientLine(line);
     expect(i).toMatchObject({ quantity, unit, name });
     expect(i.note).toBe(note);
+  });
+});
+
+describe('matching a note to recipes', () => {
+  const book = [{ title: 'Lasagne' }, { title: 'Chicken tacos' }, { title: 'Fish Tacos' }, { title: 'Taco salad' }, { title: 'Pasta pesto' }];
+  const titles = (q: string) => rankRecipesForText(book, q).map((r) => r.title);
+  it('ranks recipes sharing the note’s words', () => {
+    expect(titles('Tacos')).toEqual(['Chicken tacos', 'Fish Tacos', 'Taco salad']);
+    expect(titles('tacos with fish')[0]).toBe('Fish Tacos');
+    expect(titles('Lasagne')).toEqual(['Lasagne']);
+  });
+  it('returns nothing for unrelated notes', () => {
+    expect(titles('Grandma visiting')).toEqual([]);
+    expect(titles('')).toEqual([]);
   });
 });

@@ -21,7 +21,17 @@ export function App() {
 
   let page;
   const edit = path.match(/^\/recipes\/(\d+|new)$/);
-  if (edit) page = <RecipeEditor key={path + (params.get('draft') ?? '')} id={edit[1] === 'new' ? null : Number(edit[1])} returnTo={params.get('return')} draft={params.get('draft')} />;
+  if (edit)
+    page = (
+      <RecipeEditor
+        key={path + (params.get('draft') ?? '') + (params.get('convertEntry') ?? '')}
+        id={edit[1] === 'new' ? null : Number(edit[1])}
+        returnTo={params.get('return')}
+        draft={params.get('draft')}
+        prefillTitle={params.get('title')}
+        convertEntry={params.get('convertEntry') ? Number(params.get('convertEntry')) : null}
+      />
+    );
   else if (path.startsWith('/recipes')) page = <RecipesPage />;
   else if (path.startsWith('/import-page')) page = <ImportFromPage />;
   else if (path.startsWith('/shopping')) page = <ShoppingPage />;

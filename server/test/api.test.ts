@@ -182,6 +182,34 @@ describe('API', () => {
     expect(res.json().error).toContain('Add to Meal Plan');
   });
 
+  it('converts a calendar note into a meal, and back', async () => {
+    const r = (await app.inject({ method: 'POST', url: '/api/recipes', payload: recipe })).json();
+    const note = (await app.inject({ method: 'POST', url: '/api/entries', payload: { date: '2026-11-20', slot: 'lunch', kind: 'note', title: 'Tacos', who: 'Kid', notes: 'use leftover chicken' } })).json();
+
+    let res = await app.inject({ method: 'POST', url: `/api/entries/${note.id}/convert`, payload: { recipeId: r.id } });
+    expect(res.statusCode).toBe(200);
+    const { entry, previous } = res.json();
+    expect(entry).toMatchObject({ kind: 'recipe', recipeId: r.id, date: '2026-11-20', slot: 'lunch', who: 'Kid', title: '', notes: '', displayTitle: 'Lasagne' });
+    expect(previous).toEqual({ title: 'Tacos', notes: 'use leftover chicken' });
+    // It's a real meal now: its ingredients are on the shopping list.
+    const list = (await app.inject({ method: 'GET', url: '/api/shopping-list?from=2026-11-20&to=2026-11-20' })).json();
+    expect(list.groups.flatMap((g: any) => g.items).map((i: any) => i.name).sort()).toEqual(['gehakt', 'melk']);
+
+    // Only notes can be converted.
+    res = await app.inject({ method: 'POST', url: `/api/entries/${note.id}/convert`, payload: { recipeId: r.id } });
+    expect(res.statusCode).toBe(409);
+    const note2 = (await app.inject({ method: 'POST', url: '/api/entries', payload: { date: '2026-11-21', kind: 'note', title: 'Soup' } })).json();
+    expect((await app.inject({ method: 'POST', url: `/api/entries/${note2.id}/convert`, payload: { recipeId: 999 } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/api/entries/999/convert', payload: { recipeId: r.id } })).statusCode).toBe(404);
+
+    // Undo: back to the original note, and nothing on the shopping list.
+    await app.inject({ method: 'PUT', url: `/api/entries/${note.id}/checks/${r.ingredients[0].id}`, payload: { have: true } });
+    res = await app.inject({ method: 'POST', url: `/api/entries/${note.id}/revert-to-note`, payload: previous });
+    expect(res.json()).toMatchObject({ kind: 'note', recipeId: null, title: 'Tacos', notes: 'use leftover chicken', displayTitle: 'Tacos' });
+    const after = (await app.inject({ method: 'GET', url: '/api/shopping-list?from=2026-11-20&to=2026-11-20' })).json();
+    expect(after.groups).toEqual([]);
+  });
+
   it('serves an iCal feed', async () => {
     const res = await app.inject({ method: 'GET', url: '/calendar.ics' });
     expect(res.statusCode).toBe(200);

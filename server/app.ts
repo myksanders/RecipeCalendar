@@ -287,6 +287,26 @@ export function buildApp(opts: AppOptions): FastifyInstance {
     return e;
   });
 
+  /** Turn a calendar note into a meal for a recipe (the note's text is dropped). */
+  app.post('/api/entries/:id/convert', async (req) => {
+    const { recipeId } = parse(z.object({ recipeId: z.number().int().positive() }), req.body);
+    const r = repo.convertNoteToMeal(idParam(req), recipeId);
+    if ('error' in r) {
+      if (r.error === 'not-found') throw new HttpError(404, 'Meal not found');
+      if (r.error === 'not-a-note') throw new HttpError(409, 'Only notes can be converted into a meal');
+      throw new HttpError(400, 'Pick a recipe');
+    }
+    return r;
+  });
+
+  /** Undo a conversion: back to the note it was. */
+  app.post('/api/entries/:id/revert-to-note', async (req) => {
+    const previous = parse(z.object({ title: z.string().max(200), notes: z.string().max(5000).default('') }), req.body);
+    const e = repo.revertMealToNote(idParam(req), previous);
+    if (!e) throw new HttpError(409, 'This meal can no longer be turned back into a note');
+    return e;
+  });
+
   app.delete('/api/entries/:id', async (req, reply) => {
     if (!repo.deleteEntry(idParam(req))) throw new HttpError(404, 'Meal not found');
     reply.status(204);

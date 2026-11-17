@@ -30,10 +30,24 @@ const toRow = (i: Ingredient): IngRow => ({
 });
 const blankRow = (): IngRow => ({ key: keySeq++, qty: '', unit: '', name: '', category: 'Other', categoryTouched: false });
 
-export function RecipeEditor({ id, returnTo, draft }: { id: number | null; returnTo: string | null; draft?: string | null }) {
+export function RecipeEditor({
+  id,
+  returnTo,
+  draft,
+  prefillTitle,
+  convertEntry,
+}: {
+  id: number | null;
+  returnTo: string | null;
+  draft?: string | null;
+  /** Name to start a new recipe with (e.g. from a calendar note). */
+  prefillTitle?: string | null;
+  /** Calendar note to turn into this recipe's meal once it's saved. */
+  convertEntry?: number | null;
+}) {
   const toast = useToast();
   const [loading, setLoading] = useState(id !== null);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(prefillTitle ?? '');
   const [description, setDescription] = useState('');
   const [servings, setServings] = useState('4');
   const [prep, setPrep] = useState('');
@@ -212,6 +226,17 @@ export function RecipeEditor({ id, returnTo, draft }: { id: number | null; retur
       const saved = id === null ? await api.createRecipe(input) : await api.updateRecipe(id, input);
       if (pendingPhoto) await api.uploadPhoto(saved.id, pendingPhoto);
       else if (remoteImage) await api.photoFromUrl(saved.id, remoteImage).catch(() => toast({ text: 'Could not download the photo.', tone: 'warn' }));
+      if (convertEntry) {
+        // Created from a calendar note: that note now becomes this meal.
+        try {
+          await api.convertNote(convertEntry, saved.id);
+          toast({ text: `Saved ${saved.title} and put it on the calendar` });
+        } catch (e: any) {
+          toast({ text: `Saved ${saved.title}, but couldn’t convert the note: ${e.message}`, tone: 'warn' });
+        }
+        navigate(`/calendar?entry=${convertEntry}`);
+        return;
+      }
       toast({ text: `Saved ${saved.title}` });
       navigate(returnTo === 'calendar' ? '/calendar' : '/recipes');
     } catch (e: any) {
@@ -255,6 +280,11 @@ export function RecipeEditor({ id, returnTo, draft }: { id: number | null; retur
         </button>
       </div>
       {error && <p className="error">{error}</p>}
+      {convertEntry && (
+        <p className="import-summary" style={{ marginTop: 0 }}>
+          🍽 Saving this recipe puts it on the calendar in place of your note. Cancel to keep the note as it is.
+        </p>
+      )}
 
       <div className="editor">
         {id === null && (

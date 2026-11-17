@@ -354,6 +354,35 @@ export function createRepo(db: DB) {
     return getEntry(id);
   }
 
+  /**
+   * Turn a calendar note ("Tacos") into a planned meal for a recipe. Day, slot
+   * and "for" stay; the note's text is dropped. Returns the note's old title and
+   * notes so the change can be undone.
+   */
+  function convertNoteToMeal(id: number, recipeId: number) {
+    const cur = getEntry(id);
+    if (!cur) return { error: 'not-found' as const };
+    if (cur.kind !== 'note') return { error: 'not-a-note' as const };
+    if (!getRecipe(recipeId)) return { error: 'no-recipe' as const };
+    db.prepare(`UPDATE meal_entries SET kind = 'recipe', recipe_id = ?, title = '', notes = '' WHERE id = ?`).run(recipeId, id);
+    return { entry: getEntry(id)!, previous: { title: cur.title, notes: cur.notes } };
+  }
+
+  /** Undo convertNoteToMeal: back to a note with its old text. */
+  function revertMealToNote(id: number, previous: { title: string; notes: string }): MealEntry | null {
+    const cur = getEntry(id);
+    if (!cur || cur.kind !== 'recipe') return null;
+    transaction(db, () => {
+      db.prepare('DELETE FROM entry_checks WHERE entry_id = ?').run(id);
+      db.prepare(`UPDATE meal_entries SET kind = 'note', recipe_id = NULL, servings = NULL, title = ?, notes = ? WHERE id = ?`).run(
+        previous.title,
+        previous.notes,
+        id,
+      );
+    });
+    return getEntry(id);
+  }
+
   function deleteEntry(id: number): boolean {
     return db.prepare('DELETE FROM meal_entries WHERE id = ?').run(id).changes > 0;
   }
@@ -472,6 +501,8 @@ export function createRepo(db: DB) {
     createEntry,
     updateEntry,
     deleteEntry,
+    convertNoteToMeal,
+    revertMealToNote,
     setCheck,
     setChecks,
     shoppingList,
