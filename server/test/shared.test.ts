@@ -6,6 +6,7 @@ import { addDays, startOfWeek } from '../../shared/dates';
 import { leftoverSlot, visibleSlots } from '../../shared/types';
 import { differsFromName, dutchKey, guessCategoryWithDutch, resolveDutch } from '../../shared/dutch';
 import { rankRecipesForText } from '../../shared/match';
+import { looksDutch } from '../../shared/language';
 
 describe('guessCategory', () => {
   it.each([
@@ -237,5 +238,13 @@ describe('matching a note to recipes', () => {
   it('returns nothing for unrelated notes', () => {
     expect(titles('Grandma visiting')).toEqual([]);
     expect(titles('')).toEqual([]);
+  });
+});
+
+describe('spotting Dutch recipes', () => {
+  it('flags Dutch text and Dutch ingredient names', () => {
+    expect(looksDutch({ title: 'Eenpansrisotto met kip', steps: ['Verwarm de olie in een pan en bak de ui 3 min.'], ingredients: [{ name: 'kipfilet' }] })).toBe(true);
+    expect(looksDutch({ title: 'Lasagne', steps: ['Fry the onion.'], ingredients: [{ name: 'rundergehakt' }, { name: 'ui' }, { name: 'knoflook' }] })).toBe(true);
+    expect(looksDutch({ title: 'Honey garlic chicken', steps: ['Cook the noodles until tender.'], ingredients: [{ name: 'chicken thighs' }, { name: 'broccoli' }] })).toBe(false);
   });
 });

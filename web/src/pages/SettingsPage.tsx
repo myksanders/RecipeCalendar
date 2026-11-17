@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Settings, Slot } from '../../../shared/types';
 import { api } from '../api';
 import { bookmarkletSource, SHORTCUT_JS } from '../bookmarklet';
+import { TranslateSettings } from '../components/TranslateSettings';
 import { useTheme, type ThemePref } from '../theme';
 import { SLOT_LABEL, useToast } from '../ui';
 
@@ -242,6 +243,8 @@ export function SettingsPage() {
             </li>
           </ol>
         </section>
+
+        <TranslateSettings />
 
         <section className="card">
           <h2>➕ Add recipes from your browser</h2>

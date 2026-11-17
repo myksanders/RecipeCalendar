@@ -78,6 +78,10 @@ const MIGRATIONS: string[] = [
     nl TEXT NOT NULL
   );
   `,
+  // 3: the recipe as it was before an automatic translation, for "restore original".
+  `
+  ALTER TABLE recipes ADD COLUMN original_json TEXT;
+  `,
 ];
 
 export type DB = DatabaseSync;

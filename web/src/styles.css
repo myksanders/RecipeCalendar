@@ -512,3 +512,7 @@ ol.howto { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 .settings section h3 { font-size: 0.95rem; margin-top: 4px; }
 .bookmarklet { cursor: grab; margin-left: 4px; }
 .howto .copy-row { margin-top: 4px; }
+.translate-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 0.88rem; }
+.translate-list li.failed { color: var(--warn); }
+.translate-list li.done { color: var(--good); }
+.translate-list li a { color: inherit; font-weight: 600; }

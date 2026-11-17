@@ -23,6 +23,11 @@ ticked, grouped by Albert Heijn-style category so it's quick to enter in the AH 
   1.5 kg), groups by Meat & Fish, Vegetables & Fruit, Dairy & Eggs, Bakery,
   Pantry, Frozen, Drinks, Household. Add extras (toilet paper…). Copy, Share, or
   **Send to Notes** via an iOS Shortcut into your shared Apple Note.
+- **Translate to English** — one button per recipe, or "translate all Dutch recipes" in
+  Settings, using Claude (your own Anthropic API key, stored only on the Mac). Amounts
+  never change, the AH names keep working, and the original can be restored.
+- **Notes → meals** — a quick calendar note ("Tacos") converts into a planned meal from
+  the recipe book, or into a new recipe.
 - **Variety nudges** — the book shows when you last had each recipe and sorts by
   "longest since we had it"; planning a repeat within N weeks (default 3) warns you.
 - **Apple Calendar feed** — subscribe to `http://<computer>:3000/calendar.ics` (Calendar → File → New Calendar Subscription).

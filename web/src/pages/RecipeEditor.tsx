@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { differsFromName, dutchKey, guessCategoryWithDutch, resolveDutch } from '../../../shared/dutch';
 import { parseIngredientLine } from '../../../shared/ingredients';
-import { CATEGORIES, type Category, type Ingredient, type RecipeInput } from '../../../shared/types';
+import { CATEGORIES, type Category, type Ingredient, type Recipe, type RecipeInput } from '../../../shared/types';
 import { api, resizeImage, type ImportedRecipe } from '../api';
 import { DutchNameForm } from '../components/DutchName';
 import { navigate, Photo, useToast } from '../ui';
@@ -67,6 +67,8 @@ export function RecipeEditor({
   const [bulk, setBulk] = useState('');
   const [showBulk, setShowBulk] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [hasOriginal, setHasOriginal] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const [learned, setLearned] = useState<Map<string, string>>(new Map());
@@ -79,26 +81,58 @@ export function RecipeEditor({
       .catch(() => {});
   }, []);
 
+  function populate(r: Recipe) {
+    setTitle(r.title);
+    setDescription(r.description);
+    setServings(String(r.servings));
+    setPrep(r.prepMinutes?.toString() ?? '');
+    setCook(r.cookMinutes?.toString() ?? '');
+    setTags(r.tags.join(', '));
+    setSourceUrl(r.sourceUrl ?? '');
+    setNotes(r.notes);
+    setRows(r.ingredients.length ? r.ingredients.map(toRow) : [blankRow()]);
+    setSteps(r.steps.length ? r.steps : ['']);
+    setPhoto(r.photo);
+    setHasOriginal(r.hasOriginal);
+  }
+
   useEffect(() => {
     if (id === null) return;
     api
       .recipe(id)
-      .then((r) => {
-        setTitle(r.title);
-        setDescription(r.description);
-        setServings(String(r.servings));
-        setPrep(r.prepMinutes?.toString() ?? '');
-        setCook(r.cookMinutes?.toString() ?? '');
-        setTags(r.tags.join(', '));
-        setSourceUrl(r.sourceUrl ?? '');
-        setNotes(r.notes);
-        setRows(r.ingredients.length ? r.ingredients.map(toRow) : [blankRow()]);
-        setSteps(r.steps.length ? r.steps : ['']);
-        setPhoto(r.photo);
-      })
+      .then(populate)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  /** Translate what's in the form to English; you check it, then save. */
+  async function translate() {
+    setTranslating(true);
+    setError('');
+    try {
+      const t = await api.translateRecipe(buildInput());
+      setTitle(t.title);
+      setDescription(t.description);
+      setNotes(t.notes);
+      setRows(t.ingredients.length ? t.ingredients.map(toRow) : [blankRow()]);
+      setSteps(t.steps.length ? t.steps : ['']);
+      toast({ text: 'Translated to English — check it over, then save.' });
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setTranslating(false);
+    }
+  }
+
+  async function restoreOriginal() {
+    if (id === null || !confirm('Put back the original (untranslated) version of this recipe?')) return;
+    try {
+      populate(await api.restoreOriginal(id));
+      toast({ text: 'Original version restored' });
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
 
   useEffect(() => () => {
     if (pendingPreview) URL.revokeObjectURL(pendingPreview);
@@ -272,6 +306,14 @@ export function RecipeEditor({
     <div className="page">
       <div className="page-head">
         <h1>{id === null ? 'New recipe' : 'Edit recipe'}</h1>
+        {hasOriginal && (
+          <button className="btn ghost" onClick={restoreOriginal} title="Undo the automatic translation">
+            ↩ Restore original
+          </button>
+        )}
+        <button className="btn" onClick={translate} disabled={translating || !title.trim()} title="Translate this recipe to English">
+          {translating ? 'Translating…' : '🌐 Translate to English'}
+        </button>
         <button className="btn" onClick={() => history.back()}>
           Cancel
         </button>

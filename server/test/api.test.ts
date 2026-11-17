@@ -6,6 +6,8 @@ import { buildApp } from '../app';
 import { openDb } from '../db';
 import { createRepo } from '../repo';
 import { createPhotoStore } from '../services/photos';
+import { createSecretStore } from '../services/secrets';
+import type { RecipeText } from '../services/translate';
 
 function setup() {
   const repo = createRepo(openDb(':memory:'));
@@ -208,6 +210,92 @@ describe('API', () => {
     expect(res.json()).toMatchObject({ kind: 'note', recipeId: null, title: 'Tacos', notes: 'use leftover chicken', displayTitle: 'Tacos' });
     const after = (await app.inject({ method: 'GET', url: '/api/shopping-list?from=2026-11-20&to=2026-11-20' })).json();
     expect(after.groups).toEqual([]);
+  });
+
+  describe('translating recipes', () => {
+    const WORDS: Record<string, string> = {
+      Stamppot: 'Stamppot', 'Snijd de aardappelen.': 'Cut the potatoes.', 'Kook 20 minuten.': 'Boil for 20 minutes.',
+      'kruimige aardappelen': 'floury potatoes', rundergehakt: 'ground beef', ui: 'onion', el: 'tbsp', '': '', 'Lekker voor de winter.': 'Nice for winter.',
+    };
+    const fake = async (t: RecipeText): Promise<RecipeText> => ({
+      title: WORDS[t.title] ?? t.title,
+      description: WORDS[t.description] ?? t.description,
+      notes: WORDS[t.notes] ?? t.notes,
+      ingredients: t.ingredients.map((i) => ({ name: WORDS[i.name] ?? i.name, unit: WORDS[i.unit] ?? i.unit, note: i.note })),
+      steps: t.steps.map((x) => WORDS[x] ?? x),
+    });
+    const dutch = {
+      title: 'Stamppot', description: 'Lekker voor de winter.', servings: 4,
+      ingredients: [{ name: 'kruimige aardappelen', quantity: 1, unit: 'kg' }, { name: 'rundergehakt', quantity: 300, unit: 'g' }, { name: 'ui', quantity: 2, unit: 'el' }],
+      steps: ['Snijd de aardappelen.', 'Kook 20 minuten.'],
+    };
+    const make = (translator = fake) => buildApp({ repo: createRepo(openDb(':memory:')), photos: createPhotoStore(mkdtempSync(join(tmpdir(), 'mp-'))), translator });
+
+    it('translates and saves, keeping amounts, ids and ticks, and can restore', async () => {
+      const a = make();
+      const r = (await a.inject({ method: 'POST', url: '/api/recipes', payload: dutch })).json();
+      expect((await a.inject({ method: 'GET', url: '/api/recipes/translation-candidates' })).json()).toEqual([{ id: r.id, title: 'Stamppot' }]);
+      const e = (await a.inject({ method: 'POST', url: '/api/entries', payload: { date: '2026-11-20', kind: 'recipe', recipeId: r.id } })).json();
+      await a.inject({ method: 'PUT', url: `/api/entries/${e.id}/checks/${r.ingredients[2].id}`, payload: { have: true } });
+
+      const t = (await a.inject({ method: 'POST', url: `/api/recipes/${r.id}/translate-and-save` })).json();
+      expect(t.hasOriginal).toBe(true);
+      expect(t.description).toBe('Nice for winter.');
+      expect(t.steps).toEqual(['Cut the potatoes.', 'Boil for 20 minutes.']);
+      expect(t.ingredients.map((i: any) => [i.id, i.quantity, i.unit, i.name, i.category])).toEqual([
+        [r.ingredients[0].id, 1, 'kg', 'floury potatoes', 'Vegetables & Fruit'],
+        [r.ingredients[1].id, 300, 'g', 'ground beef', 'Meat & Fish'],
+        [r.ingredients[2].id, 2, 'tbsp', 'onion', 'Vegetables & Fruit'],
+      ]);
+      // The tick on "onion" (was "ui") survives, and AH names still come out Dutch.
+      expect((await a.inject({ method: 'GET', url: `/api/entries/${e.id}` })).json().checks[r.ingredients[2].id]).toBe(true);
+      expect(t.ingredients.map((i: any) => i.dutch)).toEqual(['kruimige aardappelen', 'rundergehakt', 'ui']);
+      // Only the name the dictionary wouldn't have got right was remembered.
+      expect((await a.inject({ method: 'GET', url: '/api/dutch-names' })).json().map((d: any) => [d.name, d.nl])).toEqual([['floury potatoes', 'kruimige aardappelen']]);
+      expect((await a.inject({ method: 'GET', url: '/api/recipes/translation-candidates' })).json()).toEqual([]);
+
+      const back = (await a.inject({ method: 'POST', url: `/api/recipes/${r.id}/restore-original` })).json();
+      expect(back.hasOriginal).toBe(false);
+      expect(back.ingredients.map((i: any) => i.name)).toEqual(['kruimige aardappelen', 'rundergehakt', 'ui']);
+      expect((await a.inject({ method: 'POST', url: `/api/recipes/${r.id}/restore-original` })).statusCode).toBe(404);
+    });
+
+    it('previews a translation without saving', async () => {
+      const a = make();
+      const res = await a.inject({ method: 'POST', url: '/api/recipes/translate', payload: dutch });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ title: 'Stamppot', steps: ['Cut the potatoes.', 'Boil for 20 minutes.'] });
+      expect((await a.inject({ method: 'GET', url: '/api/recipes' })).json()).toEqual([]);
+    });
+
+    it('refuses an incomplete translation', async () => {
+      const a = make(async (t) => ({ ...(await fake(t)), steps: ['Only one step.'] }));
+      const res = await a.inject({ method: 'POST', url: '/api/recipes/translate', payload: dutch });
+      expect(res.statusCode).toBe(422);
+      expect(res.json().error).toContain('incomplete');
+    });
+
+    it('asks for an API key when none is set, and checks the key format', async () => {
+      const prev = process.env.ANTHROPIC_API_KEY;
+      delete process.env.ANTHROPIC_API_KEY;
+      try {
+        const file = join(mkdtempSync(join(tmpdir(), 'mp-')), 'secrets.json');
+        const a = buildApp({ repo: createRepo(openDb(':memory:')), photos: createPhotoStore(mkdtempSync(join(tmpdir(), 'mp-'))), secrets: createSecretStore(file) });
+        let res = await a.inject({ method: 'POST', url: '/api/recipes/translate', payload: dutch });
+        expect(res.statusCode).toBe(422);
+        expect(res.json().error).toContain('API key');
+        expect((await a.inject({ method: 'PUT', url: '/api/translation/key', payload: { key: 'hello' } })).statusCode).toBe(400);
+        res = await a.inject({ method: 'PUT', url: '/api/translation/key', payload: { key: 'sk-ant-api03-' + 'x'.repeat(40) } });
+        expect(res.json()).toEqual({ configured: true, fromEnvironment: false });
+        const { statSync, readFileSync } = await import('node:fs');
+        expect(statSync(file).mode & 0o777).toBe(0o600);
+        expect(readFileSync(file, 'utf8')).toContain('sk-ant-api03-');
+        // The key itself is never sent back.
+        expect(JSON.stringify((await a.inject({ method: 'GET', url: '/api/translation/status' })).json())).not.toContain('sk-ant');
+      } finally {
+        if (prev !== undefined) process.env.ANTHROPIC_API_KEY = prev;
+      }
+    });
   });
 
   it('serves an iCal feed', async () => {

@@ -84,6 +84,14 @@ export const api = {
   setDutchName: (name: string, nl: string) =>
     req<{ key: string; name: string; nl: string }>('PUT', '/api/dutch-names', { name, nl }),
 
+  translationStatus: () => req<{ configured: boolean; fromEnvironment: boolean }>('GET', '/api/translation/status'),
+  setTranslationKey: (key: string) =>
+    req<{ configured: boolean; fromEnvironment: boolean }>('PUT', '/api/translation/key', { key }),
+  translationCandidates: () => req<{ id: number; title: string }[]>('GET', '/api/recipes/translation-candidates'),
+  translateRecipe: (r: RecipeInput) => req<RecipeInput>('POST', '/api/recipes/translate', r),
+  translateAndSave: (id: number) => req<Recipe>('POST', `/api/recipes/${id}/translate-and-save`),
+  restoreOriginal: (id: number) => req<Recipe>('POST', `/api/recipes/${id}/restore-original`),
+
   settings: () => req<Settings>('GET', '/api/settings').then(cacheSettings),
   updateSettings: (s: Partial<Settings>) => req<Settings>('PUT', '/api/settings', s).then(cacheSettings),
 };

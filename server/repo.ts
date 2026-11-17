@@ -84,6 +84,7 @@ export function createRepo(db: DB) {
       steps,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
+      hasOriginal: !!r.original_json,
     };
   }
 
@@ -192,6 +193,20 @@ export function createRepo(db: DB) {
       writeChildren(id, input);
     });
     return getRecipe(id);
+  }
+
+  /** Keep the recipe as it was before its first automatic translation. */
+  function saveOriginal(id: number, original: RecipeInput) {
+    db.prepare('UPDATE recipes SET original_json = COALESCE(original_json, ?) WHERE id = ?').run(JSON.stringify(original), id);
+  }
+
+  function getOriginal(id: number): RecipeInput | null {
+    const r = db.prepare('SELECT original_json FROM recipes WHERE id = ?').get(id) as Row | undefined;
+    return r?.original_json ? JSON.parse(r.original_json) : null;
+  }
+
+  function clearOriginal(id: number) {
+    db.prepare('UPDATE recipes SET original_json = NULL WHERE id = ?').run(id);
   }
 
   function setRecipePhoto(id: number, photo: string | null) {
@@ -493,6 +508,9 @@ export function createRepo(db: DB) {
     createRecipe,
     updateRecipe,
     setRecipePhoto,
+    saveOriginal,
+    getOriginal,
+    clearOriginal,
     deleteRecipe,
     nearbyPlans,
     listEntries,

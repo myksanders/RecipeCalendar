@@ -7,6 +7,7 @@ import { openDb } from './db';
 import { createRepo } from './repo';
 import { seedIfEmpty } from './seed';
 import { createPhotoStore } from './services/photos';
+import { createSecretStore } from './services/secrets';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dataDir = resolve(process.env.DATA_DIR ?? join(root, 'data'));
@@ -21,6 +22,7 @@ if (process.env.SEED !== '0') seedIfEmpty(repo);
 const app = buildApp({
   repo,
   photos: createPhotoStore(join(dataDir, 'photos')),
+  secrets: createSecretStore(join(dataDir, 'secrets.json')),
   webDist: join(root, 'web', 'dist'),
   logger: process.env.LOG === '1',
 });

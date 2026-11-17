@@ -4,14 +4,17 @@ import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { z } from 'zod';
 import { addDays, isValidISODate, today } from '../shared/dates';
-import { guessCategoryWithDutch } from '../shared/dutch';
+import { guessCategoryWithDutch, resolveDutch } from '../shared/dutch';
 import { formatIngredient } from '../shared/ingredients';
-import { shoppingListToText } from '../shared/shopping';
-import { CATEGORIES, ENTRY_KINDS, SLOTS, visibleSlots } from '../shared/types';
+import { looksDutch } from '../shared/language';
+import { normalizeName, shoppingListToText } from '../shared/shopping';
+import { CATEGORIES, ENTRY_KINDS, SLOTS, visibleSlots, type RecipeInput } from '../shared/types';
 import type { Repo } from './repo';
 import { buildIcs } from './services/ical';
 import { extractRecipeFromHtml, ImportError, importRecipeFromUrl, type ImportedRecipe } from './services/importer';
 import { MAX_PHOTO_BYTES, type PhotoStore } from './services/photos';
+import { createSecretStore, type SecretStore } from './services/secrets';
+import { applyTranslation, claudeTranslator, recipeText, TranslateError, type Translator } from './services/translate';
 
 export interface AppOptions {
   repo: Repo;
@@ -19,6 +22,9 @@ export interface AppOptions {
   webDist?: string;
   logger?: boolean;
   fetchImpl?: typeof fetch;
+  secrets?: SecretStore;
+  /** Replaces the Claude translator (tests). */
+  translator?: Translator;
 }
 
 const isoDate = z.string().refine(isValidISODate, 'Expected YYYY-MM-DD');
@@ -103,6 +109,8 @@ function baseUrl(req: FastifyRequest) {
 
 export function buildApp(opts: AppOptions): FastifyInstance {
   const { repo, photos } = opts;
+  const secrets = opts.secrets ?? createSecretStore(null);
+  const translator: Translator = opts.translator ?? ((text) => claudeTranslator(secrets.anthropicKey())(text));
   const app = Fastify({ logger: opts.logger ?? false, bodyLimit: MAX_PHOTO_BYTES });
 
   app.addContentTypeParser(/^image\//, { parseAs: 'buffer' }, (_req, body, done) => done(null, body));
@@ -233,6 +241,81 @@ export function buildApp(opts: AppOptions): FastifyInstance {
     const d = drafts.get(String((req.params as any).draft));
     if (!d || Date.now() - d.at > DRAFT_TTL) throw new HttpError(404, 'This import has expired. Try Add to Meal Plan again.');
     return d.recipe;
+  });
+
+  // ---------- translation (Dutch → English, with Claude) ----------
+
+  async function translate(r: RecipeInput): Promise<RecipeInput> {
+    try {
+      return applyTranslation(r, await translator(recipeText(r)));
+    } catch (e: any) {
+      if (e instanceof TranslateError) throw new HttpError(422, e.message);
+      app.log.error(e);
+      throw new HttpError(502, 'Translation failed. Please try again.');
+    }
+  }
+
+  /**
+   * After translating "rundergehakt" to "ground beef", remember the original
+   * Dutch word as its AH name, so shopping-list search keeps using what the
+   * Dutch recipe called it.
+   */
+  function rememberDutchNames(before: RecipeInput, after: RecipeInput) {
+    const learned = new Map(repo.listDutchNames().map((d) => [d.key, d.nl]));
+    before.ingredients.forEach((orig, idx) => {
+      const english = after.ingredients[idx]?.name;
+      if (!english || normalizeName(english) === normalizeName(orig.name)) return;
+      if (resolveDutch(orig.name).source !== 'dutch') return;
+      const known = resolveDutch(english, learned).nl;
+      if (known && normalizeName(known) === normalizeName(orig.name)) return;
+      repo.setDutchName(english, orig.name);
+    });
+  }
+
+  app.get('/api/translation/status', async () => secrets.status());
+
+  app.put('/api/translation/key', async (req) => {
+    const { key } = parse(z.object({ key: z.string().trim().max(400) }), req.body);
+    if (key && !/^sk-ant-[\w-]{20,}$/.test(key)) throw new HttpError(400, 'That doesn’t look like an Anthropic API key (it starts with sk-ant-).');
+    secrets.setAnthropicKey(key);
+    return secrets.status();
+  });
+
+  /** Recipes that still look Dutch. */
+  app.get('/api/recipes/translation-candidates', async () =>
+    repo
+      .listRecipes()
+      .map((s) => repo.getRecipe(s.id)!)
+      .filter((r) => looksDutch(r))
+      .map((r) => ({ id: r.id, title: r.title })),
+  );
+
+  /** Translate a recipe as it is in the editor; nothing is saved. */
+  app.post('/api/recipes/translate', async (req) => {
+    const input = normalizeRecipe(parse(recipeSchema, req.body));
+    const translated = await translate(input);
+    rememberDutchNames(input, translated);
+    return translated;
+  });
+
+  /** Translate a saved recipe and save it, keeping the original for "restore". */
+  app.post('/api/recipes/:id/translate-and-save', async (req) => {
+    const id = idParam(req);
+    const r = repo.getRecipe(id);
+    if (!r) throw new HttpError(404, 'Recipe not found');
+    const translated = await translate(r);
+    repo.saveOriginal(id, r);
+    rememberDutchNames(r, translated);
+    return repo.updateRecipe(id, { ...translated, photo: undefined });
+  });
+
+  app.post('/api/recipes/:id/restore-original', async (req) => {
+    const id = idParam(req);
+    const original = repo.getOriginal(id);
+    if (!original) throw new HttpError(404, 'There is no original version to restore');
+    repo.updateRecipe(id, { ...original, photo: undefined });
+    repo.clearOriginal(id);
+    return repo.getRecipe(id);
   });
 
   /** Download a remote image (from an import) as this recipe's photo. */

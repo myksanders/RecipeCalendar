@@ -61,6 +61,8 @@ export interface Recipe {
   steps: string[];
   createdAt: string;
   updatedAt: string;
+  /** True when a translated recipe still has its original (e.g. Dutch) version saved. */
+  hasOriginal: boolean;
 }
 
 /** Recipe summary used by the recipe book list. */
@@ -76,7 +78,7 @@ export interface RecipeSummary {
   timesPlanned: number;
 }
 
-export type RecipeInput = Omit<Recipe, 'id' | 'createdAt' | 'updatedAt' | 'photo'> & {
+export type RecipeInput = Omit<Recipe, 'id' | 'createdAt' | 'updatedAt' | 'photo' | 'hasOriginal'> & {
   photo?: string | null;
 };
 
